@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>{{subject}}</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  a { color: #5A4330; }
+  @media only screen and (max-width: 620px) {
+    .container { width: 100% !important; }
+    .px { padding-left: 22px !important; padding-right: 22px !important; }
+    .stack { display: block !important; width: 100% !important; }
+    .btn-cell { display: block !important; width: 100% !important; padding: 0 0 12px 0 !important; }
+    .h1 { font-size: 30px !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#EFE6D8;">
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#EFE6D8; opacity:0;">{{preheader}}&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;&#8199;&#65279;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EFE6D8;">
+  <tr>
+    <td align="center" style="padding:28px 12px;">
+      <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+      <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+        <!-- Header band -->
+        <tr>
+          <td align="center" style="background-color:#EFE6D8; padding:8px 0 22px 0;">
+            <img src="{{logoSrc}}" width="150" alt="Through My Trails" style="display:block; width:150px; max-width:150px; height:auto;">
+          </td>
+        </tr>
+        <!-- Card -->
+        <tr>
+          <td style="background-color:#FBF7F0; border-radius:28px; border:1px solid #E3D6C1;">
+            {{> @partial-block }}
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td align="center" class="px" style="padding:28px 40px 8px 40px; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:13px; line-height:22px; color:#5A4330;">
+            <a href="tel:{{contact.phoneHref}}" style="color:#5A4330; text-decoration:none;">{{contact.phone}}</a>
+            &nbsp;·&nbsp;
+            <a href="mailto:{{contact.email}}" style="color:#5A4330; text-decoration:none;">{{contact.email}}</a>
+            &nbsp;·&nbsp;
+            <a href="https://www.instagram.com/{{contact.instagram}}" style="color:#5A4330; text-decoration:none;">@{{contact.instagram}}</a>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:6px 40px 0 40px; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-style:italic; font-size:17px; line-height:24px; color:#8A6440;">
+            Explore &bull; Experience &bull; Everywhere
+          </td>
+        </tr>
+        {{#if footerNote}}
+        <tr>
+          <td align="center" style="padding:14px 40px 0 40px; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; line-height:17px; color:#6B4E35;">
+            {{footerNote}}
+          </td>
+        </tr>
+        {{/if}}
+      </table>
+      <!--[if mso]></td></tr></table><![endif]-->
+    </td>
+  </tr>
+</table>
+</body>
+</html>

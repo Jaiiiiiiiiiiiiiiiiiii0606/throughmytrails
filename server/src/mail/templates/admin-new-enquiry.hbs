@@ -1,0 +1,50 @@
+{{!--
+  Internal alert sent to ADMIN_NOTIFY_EMAIL for every new enquiry.
+  Variables: enquiry.*, adminUrl, receivedAt, callHref, whatsappDirectUrl, contact.*
+--}}
+{{#> layout}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="px" style="padding:36px 44px 6px 44px;">
+      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#6B4E35;">New enquiry · {{enquiry.referenceId}}</p>
+      <h1 class="h1" style="margin:0 0 8px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:34px; line-height:38px; font-weight:600; color:#2E2219;">{{enquiry.name}} <span style="font-style:italic; color:#8A6440;">→ {{enquiry.destination}}</span></h1>
+      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:14px; line-height:22px; color:#4A3A2C;">Received {{receivedAt}} via the {{enquiry.sourceLabel}}.</p>
+    </td>
+  </tr>
+  <tr>
+    <td class="px" style="padding:12px 44px 4px 44px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F1E7D7; border-radius:20px;">
+        <tr>
+          <td style="padding:18px 26px 14px 26px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              {{> summary-row label="Name" value=enquiry.name}}
+              {{> summary-row label="Email" value=enquiry.email}}
+              {{> summary-row label="Phone" value=enquiry.phone}}
+              {{> summary-row label="Destination" value=enquiry.destination}}
+              {{> summary-row label="Dates" value=enquiry.travelDates}}
+              {{> summary-row label="Travellers" value=enquiry.travellers}}
+              {{> summary-row label="Budget" value=enquiry.budget}}
+              {{> summary-row label="Trip type" value=enquiry.tripType}}
+              <tr>
+                <td width="38%" valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">Message</td>
+                <td valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:22px; color:#2E2219; white-space:pre-line;">{{enquiry.message}}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td class="px" style="padding:22px 44px 40px 44px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="btn-cell" style="padding:0 10px 0 0;">{{> button href=adminUrl label="Open in admin panel" dark=true}}</td>
+          <td class="btn-cell" style="padding:0 10px 0 0;">{{> button href=whatsappDirectUrl label="WhatsApp them" dark=false}}</td>
+          <td class="btn-cell">{{> button href=callHref label="Call" dark=false}}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{{/layout}}

@@ -1,0 +1,27 @@
+Hi {{firstName}},
+
+Thank you for reaching out to Through My Trails! We've received your travel enquiry and our team will get in touch with you as soon as possible — usually within 24 hours — to start planning your trip.
+
+YOUR ENQUIRY AT A GLANCE
+------------------------
+Reference:   {{enquiry.referenceId}}
+Destination: {{enquiry.destination}}
+Dates:       {{enquiry.travelDates}}
+Travellers:  {{enquiry.travellers}}
+Budget:      {{enquiry.budget}}
+Trip type:   {{enquiry.tripType}}
+
+WHAT HAPPENS NEXT
+-----------------
+{{#each steps}}
+{{this.n}}. {{this.title}} {{this.text}}
+{{/each}}
+
+Chat on WhatsApp: {{whatsappUrl}}
+Follow us on Instagram: {{instagramUrl}}
+
+Let's turn your travel dreams into plans ♥
+— Team Through My Trails
+
+{{contact.phone}} · {{contact.email}} · @{{contact.instagram}}
+Explore • Experience • Everywhere

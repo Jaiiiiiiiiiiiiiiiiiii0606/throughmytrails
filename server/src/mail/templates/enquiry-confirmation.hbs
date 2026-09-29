@@ -1,0 +1,83 @@
+{{!--
+  Confirmation email sent to the traveller after they submit the enquiry form.
+  Variables: firstName, enquiry.{referenceId, destination, travelDates, travellers, budget, tripType}, whatsappUrl, contact.*
+  Everything in {{ }} is HTML-escaped by Handlebars.
+--}}
+{{#> layout}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="px" style="padding:40px 44px 8px 44px;">
+      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#6B4E35;">Enquiry received</p>
+      <h1 class="h1" style="margin:0 0 18px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:36px; line-height:40px; font-weight:600; color:#2E2219;">Hi {{firstName}},</h1>
+      <p style="margin:0 0 16px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:16px; line-height:26px; color:#4A3A2C;">
+        Thank you for reaching out to Through My Trails! We've received your travel enquiry and our team will get in touch with you as soon as possible — usually within 24 hours — to start planning your trip.
+      </p>
+    </td>
+  </tr>
+
+  <!-- Summary card -->
+  <tr>
+    <td class="px" style="padding:12px 44px 8px 44px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F1E7D7; border-radius:20px;">
+        <tr>
+          <td style="padding:24px 26px 18px 26px;">
+            <p style="margin:0 0 4px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:24px; line-height:30px; font-weight:600; color:#2E2219;">Your enquiry at a glance</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              {{> summary-row label="Reference" value=enquiry.referenceId}}
+              {{> summary-row label="Destination" value=enquiry.destination}}
+              {{> summary-row label="Dates" value=enquiry.travelDates}}
+              {{> summary-row label="Travellers" value=enquiry.travellers}}
+              {{> summary-row label="Budget" value=enquiry.budget}}
+              <tr>
+                <td width="38%" valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">Trip type</td>
+                <td valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:21px; color:#2E2219;">{{enquiry.tripType}}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- What happens next -->
+  <tr>
+    <td class="px" style="padding:26px 44px 6px 44px;">
+      <p style="margin:0 0 14px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:24px; line-height:30px; font-weight:600; color:#2E2219;">What happens next</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        {{#each steps}}
+        <tr>
+          <td width="44" valign="top" style="padding:0 0 14px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td align="center" valign="middle" width="32" height="32" style="width:32px; height:32px; border-radius:16px; border:1.5px solid #5A4330; font-family:'Cormorant Garamond', Georgia, serif; font-size:17px; font-weight:600; color:#2E2219;">{{this.n}}</td>
+            </tr></table>
+          </td>
+          <td valign="top" style="padding:5px 0 14px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:23px; color:#4A3A2C;">
+            <strong style="color:#2E2219; font-weight:500;">{{this.title}}</strong> {{this.text}}
+          </td>
+        </tr>
+        {{/each}}
+      </table>
+    </td>
+  </tr>
+
+  <!-- Buttons -->
+  <tr>
+    <td class="px" style="padding:10px 44px 8px 44px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="btn-cell" style="padding:0 12px 0 0;">{{> button href=whatsappUrl label="Chat on WhatsApp" dark=true}}</td>
+          <td class="btn-cell">{{> button href=instagramUrl label="Follow us on Instagram" dark=false}}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Sign-off -->
+  <tr>
+    <td class="px" style="padding:26px 44px 40px 44px;">
+      <p style="margin:0; font-family:'Allura', 'Snell Roundhand', 'Apple Chancery', 'Brush Script MT', 'Segoe Script', cursive; font-size:32px; line-height:38px; color:#5A4330;">Let's turn your travel dreams into plans <span style="color:#A67C4E;">&#9829;</span></p>
+      <p style="margin:6px 0 0 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:13px; font-weight:500; letter-spacing:2px; text-transform:uppercase; color:#6B4E35;">— Team Through My Trails</p>
+    </td>
+  </tr>
+</table>
+{{/layout}}

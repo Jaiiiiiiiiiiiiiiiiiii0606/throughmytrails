@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+*.log
+.DS_Store
+server/uploads/*
+!server/uploads/.gitkeep
+server/mail-preview/
+*.tsbuildinfo
+
+# Original static-site bundle (design reference, not part of the app)
+through-my-trails-site.zip
