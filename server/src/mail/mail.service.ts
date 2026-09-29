@@ -51,6 +51,10 @@ export class MailService implements OnModuleInit {
 
   onModuleInit() {
     this.loadTemplates();
+    if (this.config.mailTransport === 'brevo') {
+      if (!this.config.brevoApiKey) this.logger.warn('MAIL_TRANSPORT=brevo but BREVO_API_KEY is not set: emails will be marked as failed.');
+      return;
+    }
     const { host, port, user, pass } = this.config.smtp;
     if (user && pass) {
       this.transporter = createTransport({
@@ -67,7 +71,16 @@ export class MailService implements OnModuleInit {
   }
 
   get isConfigured() {
-    return !!this.transporter;
+    return this.config.mailTransport === 'brevo' ? !!this.config.brevoApiKey : !!this.transporter;
+  }
+
+  get transportLabel(): string {
+    return this.config.mailTransport === 'brevo' ? 'Brevo API' : this.config.smtp.host;
+  }
+
+  /** SMTP embeds the logo (CID); HTTP APIs reference the copy the website serves. */
+  private get defaultLogoSrc(): string {
+    return this.config.mailTransport === 'brevo' ? `${this.config.siteUrl}/assets/logo-email.png` : `cid:${LOGO_CID}`;
   }
 
   /** Compiles every .hbs file; partials live in templates/partials. */
@@ -87,7 +100,7 @@ export class MailService implements OnModuleInit {
     const html = this.templates.get(name);
     const text = this.templates.get(`${name}.txt`);
     if (!html || !text) throw new Error(`Email template "${name}" is missing.`);
-    const full = { ...ctx, logoSrc: opts.logoSrc ?? `cid:${LOGO_CID}` };
+    const full = { ...ctx, logoSrc: opts.logoSrc ?? this.defaultLogoSrc };
     return { html: html(full), text: text(full) };
   }
 
@@ -175,6 +188,7 @@ export class MailService implements OnModuleInit {
 
   /** Sends a rendered email. Throws on failure so callers can record the error. */
   async send(to: string, mail: RenderedMail, replyTo?: string): Promise<void> {
+    if (this.config.mailTransport === 'brevo') return this.sendViaBrevo(to, mail, replyTo);
     if (!this.transporter) throw new Error('SMTP is not configured (set SMTP_USER and SMTP_PASS).');
     await this.transporter.sendMail({
       from: this.config.smtp.from,
@@ -185,6 +199,30 @@ export class MailService implements OnModuleInit {
       text: mail.text,
       attachments: [{ filename: 'through-my-trails.png', path: LOGO_PATH, cid: LOGO_CID }],
     });
+  }
+
+  /** https://developers.brevo.com/reference/sendtransacemail */
+  private async sendViaBrevo(to: string, mail: RenderedMail, replyTo?: string) {
+    if (!this.config.brevoApiKey) throw new Error('Brevo is not configured (set BREVO_API_KEY).');
+    const m = /^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/.exec(this.config.smtp.from);
+    const sender = m ? { name: m[1].trim() || 'Through My Trails', email: m[2].trim() } : { name: 'Through My Trails', email: this.config.smtp.from.trim() };
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': this.config.brevoApiKey, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to }],
+        ...(replyTo ? { replyTo: { email: replyTo } } : {}),
+        subject: mail.subject,
+        htmlContent: mail.html,
+        textContent: mail.text,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Brevo ${res.status}: ${body.slice(0, 300)}`);
+    }
   }
 
   async sendUserConfirmation(e: MailEnquiry) {
