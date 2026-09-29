@@ -1,52 +1,53 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { imageSize } from 'image-size';
 import { Model } from 'mongoose';
-import { join } from 'path';
-import { promisify } from 'util';
-import { APP_CONFIG, AppConfig } from '../config';
 import { SiteContentService } from '../site-content/site-content.service';
+import { MediaStorageService } from './media-storage.service';
 import { Media, MediaDocument } from './media.schema';
-import { resolveUploadDir, safeUnlink, sniffImageMime } from './upload.util';
-
-const sizeOf = promisify(imageSize);
+import { sniffImageMime } from './upload.util';
 
 @Injectable()
 export class MediaService {
-  private readonly dir: string;
-
   constructor(
     @InjectModel(Media.name) private readonly model: Model<MediaDocument>,
     private readonly content: SiteContentService,
-    @Inject(APP_CONFIG) config: AppConfig,
-  ) {
-    this.dir = resolveUploadDir(config.uploadDir);
-  }
+    private readonly storage: MediaStorageService,
+  ) {}
 
   /** Verifies every uploaded file by content, then records metadata. Rejects the whole batch on any bad file. */
   async createFromUploads(files: Express.Multer.File[], uploadedBy: string, alts: string[] = []) {
     if (!files?.length) throw new BadRequestException('Choose at least one image to upload.');
 
-    const checked: { file: Express.Multer.File; width?: number; height?: number }[] = [];
+    const checked: { file: Express.Multer.File; data: Buffer; width?: number; height?: number }[] = [];
     try {
       for (const file of files) {
-        const sniffed = await sniffImageMime(file.path);
+        const data = await this.storage.bytes(file);
+        const sniffed = sniffImageMime(data);
         if (!sniffed || sniffed !== file.mimetype) {
           throw new BadRequestException(`"${file.originalname}" is not a valid JPG, PNG or WebP image.`);
         }
-        const dim = await sizeOf(file.path).catch(() => undefined);
-        checked.push({ file, width: dim?.width, height: dim?.height });
+        let dim: { width?: number; height?: number } | undefined;
+        try {
+          dim = imageSize(data);
+        } catch {
+          dim = undefined;
+        }
+        checked.push({ file, data, width: dim?.width, height: dim?.height });
       }
     } catch (e) {
-      await Promise.all(files.map((f) => safeUnlink(f.path)));
+      await Promise.all(files.map((f) => this.storage.discard(f)));
       throw e;
     }
 
+    const saved = [];
+    for (const c of checked) saved.push({ ...c, filename: await this.storage.save(c.file, c.data) });
+
     const docs = await this.model.insertMany(
-      checked.map(({ file, width, height }, i) => ({
-        filename: file.filename,
+      saved.map(({ file, filename, width, height }, i) => ({
+        filename,
         originalName: file.originalname.slice(0, 200),
-        url: `/uploads/${file.filename}`,
+        url: `/uploads/${filename}`,
         mimeType: file.mimetype,
         size: file.size,
         width,
@@ -83,7 +84,7 @@ export class MediaService {
     }
     if (usedIn.length) await this.content.unassignMedia(id);
     await doc.deleteOne();
-    await safeUnlink(join(this.dir, doc.filename));
+    await this.storage.remove(doc.filename);
     return { ok: true, unassigned: usedIn };
   }
 }

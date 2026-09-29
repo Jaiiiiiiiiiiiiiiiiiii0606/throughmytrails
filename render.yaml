@@ -1,0 +1,53 @@
+# Render Blueprint: New → Blueprint → pick this repo. Creates the API on the free plan.
+# Values marked `sync: false` are asked for in the Render dashboard (never commit them).
+services:
+  - type: web
+    name: throughmytrails-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Your Vercel site URL, e.g. https://throughmytrails.vercel.app (used for CORS, email links and the email logo)
+      - key: CLIENT_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Nachiket R. Patil
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
+      # Render's free plan blocks SMTP ports, so email goes through Brevo's HTTPS API.
+      - key: MAIL_TRANSPORT
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      # Must be a sender address verified in Brevo, e.g. "Through My Trails <you@gmail.com>"
+      - key: MAIL_FROM
+        sync: false
+      # Free instances have no persistent disk: keep uploaded images in MongoDB (GridFS).
+      - key: UPLOAD_STORAGE
+        value: mongo
+      - key: MAX_UPLOAD_MB
+        value: "5"
+      # Vercel proxies /api here and sets X-Forwarded-For to the real visitor IP.
+      - key: TRUST_PROXY
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax

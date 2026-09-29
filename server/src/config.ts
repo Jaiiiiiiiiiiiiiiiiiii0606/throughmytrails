@@ -12,9 +12,21 @@ export interface AppConfig {
   adminName: string;
   adminNotifyEmail: string;
   smtp: { host: string; port: number; user?: string; pass?: string; from: string };
+  /** 'smtp' (Nodemailer) or 'brevo' (HTTPS API; for hosts that block SMTP, e.g. Render free). */
+  mailTransport: 'smtp' | 'brevo';
+  brevoApiKey?: string;
+  /** Public site URL used for links and the logo image in emails. */
+  siteUrl: string;
+  /** 'disk' (UPLOAD_DIR) or 'mongo' (GridFS; for hosts without a persistent disk). */
+  uploadStorage: 'disk' | 'mongo';
   uploadDir: string;
   maxUploadBytes: number;
-  trustProxy: boolean;
+  /**
+   * Express "trust proxy": a hop count, or true to trust the whole X-Forwarded-For chain
+   * (right when a proxy such as Vercel overwrites that header with the real client IP).
+   */
+  trustProxy: number | boolean;
+  cookieSameSite: 'lax' | 'strict' | 'none';
 }
 
 const REQUIRED = ['MONGODB_URI', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const;
@@ -54,10 +66,23 @@ export function loadConfig(config: ConfigService): AppConfig {
       pass: get('SMTP_PASS') || undefined,
       from: get('MAIL_FROM', 'Through My Trails <throughmytrails@gmail.com>'),
     },
+    mailTransport: get('MAIL_TRANSPORT', 'smtp').toLowerCase() === 'brevo' ? 'brevo' : 'smtp',
+    brevoApiKey: get('BREVO_API_KEY') || undefined,
+    siteUrl: (get('SITE_URL') || get('CLIENT_URL', 'http://localhost:5173').split(',')[0]).trim().replace(/\/+$/, ''),
+    uploadStorage: get('UPLOAD_STORAGE', 'disk').toLowerCase() === 'mongo' ? 'mongo' : 'disk',
     uploadDir: get('UPLOAD_DIR', 'uploads'),
     maxUploadBytes: Math.round(parseFloat(get('MAX_UPLOAD_MB', '5')) * 1024 * 1024),
-    trustProxy: ['1', 'true', 'yes'].includes(get('TRUST_PROXY').toLowerCase()),
+    trustProxy: parseTrustProxy(get('TRUST_PROXY')),
+    cookieSameSite: (['lax', 'strict', 'none'].includes(get('COOKIE_SAMESITE').toLowerCase())
+      ? get('COOKIE_SAMESITE').toLowerCase()
+      : 'lax') as AppConfig['cookieSameSite'],
   };
+}
+
+function parseTrustProxy(v: string): number | boolean {
+  if (['true', 'yes', 'all'].includes(v.toLowerCase())) return true;
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /** Injection token for the typed config object. */
