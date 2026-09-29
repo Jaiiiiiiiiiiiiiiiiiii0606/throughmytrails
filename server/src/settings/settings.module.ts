@@ -32,7 +32,7 @@ export class SettingsController {
     return {
       configured: this.mail.isConfigured,
       from: this.config.smtp.from,
-      host: this.config.smtp.host,
+      host: this.mail.transportLabel,
       notifyEmail: this.config.adminNotifyEmail,
     };
   }
