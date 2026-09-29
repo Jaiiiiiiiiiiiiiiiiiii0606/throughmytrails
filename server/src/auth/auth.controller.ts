@@ -32,9 +32,9 @@ export class AuthController {
   private cookieOptions(): CookieOptions {
     return {
       httpOnly: true,
-      // Production: client and API usually live on different domains, which requires SameSite=None + Secure.
-      secure: this.config.isProduction,
-      sameSite: this.config.isProduction ? 'none' : 'lax',
+      // 'lax' when the site proxies /api (same origin). Use COOKIE_SAMESITE=none if the site calls the API cross-site.
+      secure: this.config.isProduction || this.config.cookieSameSite === 'none',
+      sameSite: this.config.cookieSameSite,
       path: '/api/auth',
     };
   }

@@ -2,15 +2,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { APP_CONFIG, AppConfig } from './config';
+import { MediaStorageService } from './media/media-storage.service';
 import { resolveUploadDir } from './media/upload.util';
 
 /** Shared by main.ts and the e2e tests so both run the exact same pipeline. */
 export function configureApp(app: NestExpressApplication): AppConfig {
   const config = app.get<AppConfig>(APP_CONFIG);
 
-  if (config.trustProxy) app.set('trust proxy', 1);
+  if (config.trustProxy) app.set('trust proxy', config.trustProxy);
   app.disable('x-powered-by');
   app.setGlobalPrefix('api');
 
@@ -44,14 +46,24 @@ export function configureApp(app: NestExpressApplication): AppConfig {
     }),
   );
 
-  app.useStaticAssets(resolveUploadDir(config.uploadDir), {
-    prefix: '/uploads/',
-    index: false,
-    dotfiles: 'deny',
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
-  });
+  if (config.uploadStorage === 'mongo') {
+    const storage = app.get(MediaStorageService);
+    app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      storage.serve(req, res).catch(() => {
+        if (!res.headersSent) res.status(404).json({ statusCode: 404, error: 'Not Found', message: 'Image not found.' });
+      });
+    });
+  } else {
+    app.useStaticAssets(resolveUploadDir(config.uploadDir), {
+      prefix: '/uploads/',
+      index: false,
+      dotfiles: 'deny',
+      maxAge: '30d',
+      immutable: true,
+      setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+    });
+  }
 
   const doc = new DocumentBuilder()
     .setTitle('Through My Trails API')
