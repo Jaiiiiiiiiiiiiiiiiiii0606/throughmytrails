@@ -98,15 +98,20 @@ Gmail allows about 500 recipients a day. For higher volume, switch the `SMTP_*` 
 | `SMTP_HOST` / `SMTP_PORT` | | `smtp.gmail.com` / `465` | SMTP server (port 465 = TLS) |
 | `SMTP_USER` / `SMTP_PASS` | for email | | SMTP login (Gmail App Password) |
 | `MAIL_FROM` | | `Through My Trails <throughmytrails@gmail.com>` | From header |
-| `UPLOAD_DIR` | | `uploads` | Where images are stored (relative to `server/` or absolute) |
+| `MAIL_TRANSPORT` | | `smtp` | `smtp` (Nodemailer) or `brevo` (HTTPS API, for hosts that block SMTP) |
+| `BREVO_API_KEY` | with `brevo` | | Brevo API key; the `MAIL_FROM` address must be a verified Brevo sender |
+| `SITE_URL` | | first `CLIENT_URL` | Public site URL for email links and the email logo |
+| `UPLOAD_STORAGE` | | `disk` | `disk` (UPLOAD_DIR) or `mongo` (GridFS, for hosts without a persistent disk) |
+| `UPLOAD_DIR` | | `uploads` | Where images are stored in `disk` mode (relative to `server/` or absolute) |
 | `MAX_UPLOAD_MB` | | `5` | Per-file limit |
-| `TRUST_PROXY` | | | Set to `1` behind Render/Railway/Nginx so rate limits see the real client IP |
+| `TRUST_PROXY` | | `0` | Proxy hops to trust for the client IP: `1` behind a single proxy, `true` behind Vercel's proxy |
+| `COOKIE_SAMESITE` | | `lax` | `lax` when the site proxies `/api`; `none` if the site calls the API cross-site (HTTPS only) |
 
 ### `client/.env`
 
 | Variable | Purpose |
 |---|---|
-| `VITE_API_URL` | API origin in production, e.g. `https://api.throughmytrails.com`. Leave empty in development. |
+| `VITE_API_URL` | Leave empty when the site proxies `/api` (development, and the Vercel setup). Set it only if the site calls the API on another domain. |
 | `VITE_SITE_URL` | Public site URL, used for canonical and Open Graph tags. |
 
 ---
@@ -167,31 +172,58 @@ Every error has the same shape: `{ statusCode, error, message, details?, path, t
 
 ---
 
-## Deploying
+## Deploying (free)
 
-A simple, low-cost setup:
+| Piece | Free service | Notes |
+|---|---|---|
+| Database | **MongoDB Atlas** M0 | 512 MB. Also stores uploaded images (GridFS). |
+| API | **Render** free web service | `render.yaml` Blueprint. Sleeps after 15 idle minutes; no disk; SMTP blocked. |
+| Email | **Brevo** free | 300 emails/day over HTTPS (Render's free plan blocks SMTP ports). |
+| Website | **Vercel** Hobby | Proxies `/api` and `/uploads` to Render, so everything is one origin. |
+| Keep-awake | **cron-job.org** or **UptimeRobot** | Pings `/api/health` every 10 minutes so the API doesn't sleep. |
 
-| Piece | Service |
-|---|---|
-| Database | **MongoDB Atlas** (free M0 is fine to start). Allow your API host's IPs, or `0.0.0.0/0` with a strong password. |
-| API | **Render** (Web Service) or **Railway** |
-| Website | **Vercel** or **Netlify** |
+Render's free plan [blocks outbound SMTP](https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports) and has an [ephemeral filesystem with no disk or shell](https://render.com/docs/free). The app handles both with `MAIL_TRANSPORT=brevo` and `UPLOAD_STORAGE=mongo`, which the Blueprint sets for you. The admin user and default site content are created automatically on first boot, so no shell or seed step is needed.
 
-### API on Render
-- Root directory `server`. Build: `npm ci && npm run build`. Start: `npm run start:prod`.
-- Environment: everything in the table above, plus `NODE_ENV=production`, `TRUST_PROXY=1`, and `CLIENT_URL=https://www.your-domain.com`.
-- **Uploads need persistent storage.** Render and Railway filesystems are wiped on every deploy. Attach a **persistent disk** (Render: *Disks*, mounted at e.g. `/var/data`) and set `UPLOAD_DIR=/var/data/uploads`. On Railway, add a Volume. For multiple instances, move uploads to S3/Cloudinary/R2 (the only code to change is `media.module.ts` storage and `media.service.ts` delete).
-- Run the seed once from the service shell: `npm run seed` (after `npm run build`, `node dist/seed.js` also works).
+### 1. MongoDB Atlas
+1. Sign up at <https://www.mongodb.com/cloud/atlas/register>. Create a **free M0** cluster (region: Mumbai `ap-south-1` or Singapore).
+2. **Database Access** → add a user with a generated password (built-in role *Read and write to any database*).
+3. **Network Access** → *Add IP Address* → `0.0.0.0/0`. Render's free plan has no fixed outbound IP.
+4. **Connect → Drivers**, copy the URI, insert the password and a database name:
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/throughmytrails?retryWrites=true&w=majority`
 
-### Website on Vercel or Netlify
-- Root directory `client`. Build: `npm run build`. Output: `dist`.
-- Set `VITE_API_URL` to the API origin and `VITE_SITE_URL` to the site URL.
-- SPA routing is already configured (`client/vercel.json`, `client/public/_redirects`).
+### 2. Brevo (email)
+1. Sign up at <https://www.brevo.com> (free plan).
+2. **Senders, domains & dedicated IPs → Senders → Add a sender** with the address emails come from (e.g. your Gmail), and confirm the verification email.
+3. **SMTP & API → API keys → Generate a new API key**. Copy it; it's only shown once.
 
-### Cookies and domains
-The admin refresh token is an httpOnly cookie. In production it is sent `SameSite=None; Secure`, so the site and API must both use HTTPS. For the most reliable sign-in (Safari blocks many third-party cookies), serve both from **the same registrable domain**, e.g. `www.throughmytrails.com` and `api.throughmytrails.com`, rather than `*.vercel.app` + `*.onrender.com`.
+### 3. API on Render
+1. Sign up at <https://render.com> with GitHub and give it access to this repository.
+2. **New → Blueprint** → select the repo. Render reads `render.yaml` and asks for the secret values:
+   - `MONGODB_URI`: from step 1
+   - `CLIENT_URL`: your Vercel URL from step 4 (enter a placeholder now and correct it afterwards)
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`: your admin login (password ≥ 8 characters)
+   - `ADMIN_NOTIFY_EMAIL`: where new-enquiry alerts go
+   - `BREVO_API_KEY`: from step 2
+   - `MAIL_FROM`: `Through My Trails <the-sender-you-verified@gmail.com>`
+3. Deploy. When it's live, open `https://<your-service>.onrender.com/api/health`; it should say `"status":"ok"`.
+4. If Render gave the service a different URL than `throughmytrails-api.onrender.com`, update the two API URLs in `client/vercel.json` (and `client/public/_redirects` if you use Netlify), then commit.
 
----
+### 4. Website on Vercel
+1. Sign up at <https://vercel.com> with GitHub → **Add New → Project** → import this repo.
+2. **Root Directory:** `client`. Framework: *Vite* (detected). Build and output settings stay at their defaults.
+3. Environment variable: `VITE_SITE_URL` = the site URL, e.g. `https://throughmytrails.vercel.app`. Leave `VITE_API_URL` **unset**, because the site calls `/api` on its own domain and Vercel forwards it to Render.
+4. Deploy. Then in Render set `CLIENT_URL` to this exact URL (no trailing slash) and let it redeploy. Email links and the email logo use it.
+
+### 5. Keep the API awake
+On <https://cron-job.org> (or UptimeRobot), create a job that GETs `https://<your-service>.onrender.com/api/health` **every 10 minutes**. One always-on service fits inside Render's 750 free hours a month. Without it, the first visit after 15 idle minutes waits about a minute for the API to wake, and that first enquiry can time out.
+
+### After deploying
+- Sign in at `https://<site>/admin`, go to **Settings → Send test email**, and change the admin password.
+- Upload images under **Media & content**. They're stored in Atlas and survive restarts and redeploys.
+- Every `git push` to `main` redeploys both services.
+
+### Other hosts
+Running on a host with a persistent disk and open SMTP (a paid Render instance, a VPS, Railway with a volume)? Set `UPLOAD_STORAGE=disk` with `UPLOAD_DIR` on that disk, and `MAIL_TRANSPORT=smtp` with the Gmail App Password. If the website calls the API on a different domain instead of proxying, set the client's `VITE_API_URL` and the server's `COOKIE_SAMESITE=none` (HTTPS required). Serve both from one registrable domain (e.g. `www.` and `api.`) so Safari keeps the sign-in cookie.
 
 ## Security notes
 

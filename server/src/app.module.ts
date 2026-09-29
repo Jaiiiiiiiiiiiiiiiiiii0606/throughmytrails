@@ -9,6 +9,7 @@ import { AppConfigModule } from './common/config.module';
 import { AllExceptionsFilter } from './common/http-exception.filter';
 import { validateEnv } from './config';
 import { EnquiriesModule } from './enquiries/enquiries.module';
+import { HealthController } from './health/health.controller';
 import { MailModule } from './mail/mail.module';
 import { MediaModule } from './media/media.module';
 import { SettingsModule } from './settings/settings.module';
@@ -34,6 +35,7 @@ import { StatsModule } from './stats/stats.module';
     StatsModule,
     SettingsModule,
   ],
+  controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
