@@ -27,10 +27,14 @@
               {{> summary-row label="Destination" value=enquiry.destination}}
               {{> summary-row label="Dates" value=enquiry.travelDates}}
               {{> summary-row label="Travellers" value=enquiry.travellers}}
+              {{#if enquiry.planRows.length}}
+              {{#each enquiry.planRows}}{{> summary-row label=this.label value=this.value}}{{/each}}
+              {{else}}
               {{> summary-row label="Budget" value=enquiry.budget}}
+              {{/if}}
               <tr>
-                <td width="38%" valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">Trip type</td>
-                <td valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:21px; color:#2E2219;">{{enquiry.tripType}}</td>
+                <td width="38%" valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">{{#if enquiry.planRows.length}}Notes{{else}}Trip type{{/if}}</td>
+                <td valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:21px; color:#2E2219; white-space:pre-line;">{{#if enquiry.planRows.length}}{{enquiry.message}}{{else}}{{enquiry.tripType}}{{/if}}</td>
               </tr>
             </table>
           </td>
@@ -65,8 +69,13 @@
     <td class="px" style="padding:10px 44px 8px 44px;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0">
         <tr>
+          {{#if tripsUrl}}
+          <td class="btn-cell" style="padding:0 12px 0 0;">{{> button href=tripsUrl label="Track this trip" dark=true}}</td>
+          <td class="btn-cell">{{> button href=whatsappUrl label="Chat on WhatsApp" dark=false}}</td>
+          {{else}}
           <td class="btn-cell" style="padding:0 12px 0 0;">{{> button href=whatsappUrl label="Chat on WhatsApp" dark=true}}</td>
           <td class="btn-cell">{{> button href=instagramUrl label="Follow us on Instagram" dark=false}}</td>
+          {{/if}}
         </tr>
       </table>
     </td>

@@ -1,7 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { BUDGETS, Budget, ENQUIRY_SOURCES, EnquirySource } from '../../common/constants';
+import { BUDGETS, Budget, EnquirySource } from '../../common/constants';
+
+/** The planner and package sources are only set by the signed-in trip endpoint. */
+const PUBLIC_SOURCES = ['form', 'trip-card'] as const;
 import { CleanMultiline, CleanString, NormalizeEmail } from '../../common/sanitize';
 
 const emptyToUndefined = () => Transform(({ value }) => (value === '' || value === null ? undefined : value));
@@ -68,9 +71,9 @@ export class CreateEnquiryDto {
   @MaxLength(2000)
   message?: string;
 
-  @ApiPropertyOptional({ enum: ENQUIRY_SOURCES })
+  @ApiPropertyOptional({ enum: PUBLIC_SOURCES })
   @IsOptional()
-  @IsIn(ENQUIRY_SOURCES)
+  @IsIn(PUBLIC_SOURCES)
   source?: EnquirySource;
 
   /** Honeypot. Hidden from humans; bots tend to fill it. */

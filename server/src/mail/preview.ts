@@ -34,9 +34,49 @@ async function main() {
     createdAt: new Date(),
   };
 
+  const planned: MailEnquiry = {
+    ...sample,
+    destination: 'Thailand',
+    travelDates: '14 Mar 2027 · 7 nights',
+    travellers: 2,
+    budget: null,
+    tripType: '',
+    source: 'planner',
+    message: 'It is our first anniversary. A private dinner on the beach would be lovely.',
+    plan: {
+      destinationSlug: 'thailand',
+      companion: 'couple',
+      adults: 2,
+      children: 0,
+      childAges: [],
+      infants: 0,
+      rooms: 1,
+      startDate: new Date('2027-03-14'),
+      flexibleDates: false,
+      nights: 7,
+      cities: [
+        { name: 'Krabi', nights: 4 },
+        { name: 'Phuket', nights: 3 },
+      ],
+      budget: 'comfort',
+      stays: ['resort', 'boutique'],
+      pace: 'relaxed',
+      interests: ['beaches', 'food', 'wellness'],
+      occasion: 'Anniversary',
+      departureCity: 'Pune',
+      needFlights: true,
+      needVisa: true,
+      needInsurance: false,
+    },
+  };
+
   const files: [string, Awaited<ReturnType<MailService['buildTest']>>][] = [
     ['enquiry-confirmation', await mail.buildUserConfirmation(sample, { logoSrc })],
     ['admin-new-enquiry', await mail.buildAdminAlert(sample, { logoSrc })],
+    ['trip-confirmation', await mail.buildUserConfirmation(planned, { logoSrc })],
+    ['admin-new-trip', await mail.buildAdminAlert(planned, { logoSrc })],
+    ['login-code', await mail.buildLoginCode('482913', 10, { logoSrc })],
+    ['welcome', await mail.buildWelcome({ email: 'aarav@example.com', name: 'Aarav Mehta' }, { logoSrc })],
     ['test-email', await mail.buildTest('admin@example.com', { logoSrc })],
   ];
   for (const [name, m] of files) {

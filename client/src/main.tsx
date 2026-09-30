@@ -1,10 +1,12 @@
+// Base tokens first so page stylesheets (loaded through the routes) can override them.
+import './theme/tokens.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { ApiError } from './api/client';
+import { TravellerAuthProvider } from './auth/TravellerAuth';
 import { router } from './routes';
-import './theme/tokens.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,7 +21,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      <TravellerAuthProvider>
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
+      </TravellerAuthProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

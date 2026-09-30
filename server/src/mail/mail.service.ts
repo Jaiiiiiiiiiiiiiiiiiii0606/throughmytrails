@@ -4,6 +4,8 @@ import Handlebars from 'handlebars';
 import { createTransport, Transporter } from 'nodemailer';
 import { join } from 'path';
 import { BUDGET_LABELS, Budget } from '../common/constants';
+import { planRows } from '../common/plan-format';
+import type { TripPlan } from '../enquiries/enquiry.schema';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Contact } from '../site-content/site-content.schema';
 import { SiteContentService } from '../site-content/site-content.service';
@@ -27,7 +29,15 @@ export interface MailEnquiry {
   message?: string;
   source?: string;
   createdAt?: Date;
+  plan?: TripPlan | null;
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  form: 'website enquiry form',
+  'trip-card': 'trip card on the website',
+  planner: 'trip planner (signed-in traveller)',
+  package: 'package page (signed-in traveller)',
+};
 
 export interface RenderedMail {
   subject: string;
@@ -105,7 +115,8 @@ export class MailService implements OnModuleInit {
       budget: (e.budget && BUDGET_LABELS[e.budget as Budget]) || DASH,
       tripType: trip?.title ?? (e.tripType === 'other' ? 'Something else' : e.tripType || DASH),
       message: e.message || DASH,
-      sourceLabel: e.source === 'trip-card' ? 'trip card on the website' : 'website enquiry form',
+      sourceLabel: SOURCE_LABELS[e.source ?? 'form'] ?? SOURCE_LABELS.form,
+      planRows: e.plan ? planRows(e.plan) : [],
     };
   }
 
@@ -119,6 +130,55 @@ export class MailService implements OnModuleInit {
 
   private get adminBaseUrl() {
     return this.config.clientUrls[0] ?? 'http://localhost:5173';
+  }
+
+  private get siteUrl() {
+    return this.adminBaseUrl;
+  }
+
+  async buildLoginCode(code: string, minutes: number, opts?: { logoSrc?: string }): Promise<RenderedMail> {
+    const contact = await this.content.getContact();
+    const ctx = {
+      subject: `${code} is your Through My Trails sign-in code`,
+      preheader: `Enter ${code} to sign in. It expires in ${minutes} minutes.`,
+      code,
+      digits: code.split(''),
+      minutes,
+      contact: this.contactView(contact),
+      footerNote: `Someone (hopefully you) asked to sign in to Through My Trails with this email. If it wasn't you, you can ignore this email.`,
+    };
+    return { subject: ctx.subject, ...this.render('login-code', ctx, opts) };
+  }
+
+  async buildWelcome(u: { email: string; name?: string }, opts?: { logoSrc?: string }): Promise<RenderedMail> {
+    const contact = await this.content.getContact();
+    const firstName = u.name ? this.firstName(u.name) : 'traveller';
+    const ctx = {
+      subject: `Welcome aboard, ${firstName} ✈ — Through My Trails`,
+      preheader: 'Your account is ready. Explore destinations, plan a trip in two minutes, and track every request in one place.',
+      firstName,
+      planUrl: `${this.siteUrl}/plan`,
+      exploreUrl: `${this.siteUrl}/explore`,
+      accountUrl: `${this.siteUrl}/account`,
+      whatsappUrl: `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(`Hi Through My Trails, I just signed up as ${u.email}.`)}`,
+      perks: [
+        { icon: '✦', title: 'Explore destinations', text: 'Hover over a place to hear and see it. Save the ones that tug at you.' },
+        { icon: '✎', title: 'Plan in two minutes', text: 'Tell us who, when and how you like to travel. A real planner builds your day-wise itinerary.' },
+        { icon: '✓', title: 'Track every trip', text: 'Your requests, their status and your saved places live in your profile.' },
+      ],
+      contact: this.contactView(contact),
+      footerNote: `You're receiving this because you created a Through My Trails account with ${u.email}.`,
+    };
+    return { subject: ctx.subject, ...this.render('welcome', ctx, opts) };
+  }
+
+  async sendLoginCode(to: string, code: string, minutes: number) {
+    await this.send(to, await this.buildLoginCode(code, minutes));
+  }
+
+  async sendWelcome(u: { email: string; name?: string }) {
+    const contact = await this.content.getContact();
+    await this.send(u.email, await this.buildWelcome(u), contact.email);
   }
 
   async buildUserConfirmation(e: MailEnquiry, opts?: { logoSrc?: string }): Promise<RenderedMail> {
@@ -139,6 +199,7 @@ export class MailService implements OnModuleInit {
         { n: 3, title: 'You receive a personalised day-wise itinerary', text: 'with a clear budget breakdown, tweaked until it feels just right.' },
       ],
       footerNote: `You're receiving this because you sent an enquiry on our website. Reply to this email any time.`,
+      tripsUrl: e.plan ? `${this.siteUrl}/account` : null,
     };
     return { subject: ctx.subject, ...this.render('enquiry-confirmation', ctx, opts) };
   }

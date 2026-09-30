@@ -33,3 +33,6 @@ export const PlusIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><path d=
 export const UploadIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>;
 export const RefreshIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5" /></svg>;
 export const EditIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z" /></svg>;
+export const MapPinIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>;
+export const SuitcaseIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><rect x="3" y="7" width="18" height="13" rx="2.5" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" /></svg>;
+export const UsersIcon = ({ size, ...p }: P) => <svg {...s(size)} {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5" /></svg>;
