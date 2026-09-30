@@ -7,7 +7,7 @@ This repository contains:
 | Folder | What it is |
 |---|---|
 | `client/` | React 18 + TypeScript + Vite. The public website (a faithful port of the original static design and its scroll animations) and the admin panel at `/admin`. |
-| `server/` | NestJS 10 + MongoDB (Mongoose) API: enquiries, branded emails, media uploads, site content, JWT auth, stats. |
+| `server/` | NestJS 10 + MongoDB (Mongoose) API: enquiries, branded emails, media uploads, site content, destinations & packages, traveller accounts (email code, Google, Apple), JWT auth, stats. |
 | `docker-compose.yml` | A local MongoDB 7 instance. |
 
 ```
@@ -66,6 +66,47 @@ In development Vite proxies `/api` and `/uploads` to `localhost:4000`, so the si
 
 ---
 
+## Traveller experience
+
+| Page | What it does |
+|---|---|
+| `/explore` | "Start planning" search (destinations, countries and the cities inside them), **Who's coming along** (Couple · Family · Friends · Solo · Seniors → opens the planner), the arched **Where do you want to go?** rail, packages with destination / budget / traveller filters, and rails for International, Visa-free, Domestic & neighbouring, Honeymoon and Offbeat. |
+| `/destinations/:slug` | Full-screen clip, "Hear it" sound button, quick facts (best time, trip length, visa, price), description, highlights, suggested route, gallery, packages, media credits. |
+| `/packages/:slug` | Photos, day-by-day itinerary, inclusions/exclusions, price card, "Customise & request". |
+| `/plan` | Six-step planner: where → who (adults, children with ages, infants, rooms) → when (exact date or flexible month; nights per city) → style (budget, pace, interests, stays, occasion) → details (flights from, visa, insurance, notes, contact) → review. Pre-fills from the URL, the package and the traveller's profile; the draft survives a reload. Sign-in is only asked for when sending. |
+| `/login` | Email + 6-digit code, **Continue with Google**, **Continue with Apple**. |
+| `/account` | My trips (with a New → Contacted → Itinerary sent → Booked tracker), Saved places, Profile & preferences, delete account. |
+
+**Hover media.** Hovering (or keyboard-focusing) a destination card zooms the photo, fades in its clip and plays its sound. Only one plays at a time, sound fades in and out, and there is a site-wide **Sound on/off** switch. Browsers only allow sound after the visitor has clicked or tapped once on the page; until then clips play muted and the switch says "Tap to hear places". Phones get a ▶ button instead of hover. `prefers-reduced-motion` disables autoplay.
+
+**Trip requests are enquiries.** A sent plan becomes a normal enquiry (source *planner* or *package*) with a `plan` attached, so it shows in **Admin → Enquiries** with the full plan, uses the same statuses, notes, emails and CSV export, and the traveller sees the status in *My trips*.
+
+**Emails.** New accounts get a **welcome email** once (retried on the next sign-in if SMTP was down). Sign-in codes are emailed; they expire after 10 minutes, allow 5 attempts, and can be re-sent after 30 seconds. **In development without SMTP, the code is printed in the API log** (`[dev] Sign-in code for …`).
+
+### Admin
+- **Destinations**: name lettering (serif, caps, script, bold) with a live hoverable preview, cover photo, hover clip, ambient sound, gallery (each from the media library or an https link, with a credit line), rails, best time, visa note, trip length, starting price, suggested route and highlights. Reorder, publish/draft, delete (blocked while it has packages).
+- **Packages**: destination, price and "was" price, ribbon, who it suits, route (nights add up automatically), day-by-day itinerary, highlights, inclusions/exclusions, photos. Duplicate, publish/draft, feature.
+- **Travellers**: search, sign-in methods, preferences, their trips, pause/restore an account.
+- **Media & content**: the library now takes MP4/WebM clips (≤ 40 MB) and MP3/M4A/OGG/WAV sounds (≤ 10 MB), verified by content like images. The five **Who's coming** photos are image slots (`companion:couple`, …).
+
+### Sample catalogue
+`npm run seed` adds 20 destinations and 20 packages **when there are no destinations yet**. Their photos, clips and sounds are freely licensed files from Wikimedia Commons, hotlinked with attribution (shown under "Media credits" on each destination page). Replace them with your own uploads whenever you like. **Prices, seasons and visa notes are starting points: review them before going live**, especially visa rules, which change often.
+
+### Google sign-in
+1. <https://console.cloud.google.com/apis/credentials> → **Create credentials → OAuth client ID → Web application**.
+2. **Authorised JavaScript origins**: `http://localhost:5173` and your live site, e.g. `https://www.throughmytrails.com`. No redirect URI is needed.
+3. Put the client id in `GOOGLE_CLIENT_ID` and restart the API. The button appears automatically.
+
+### Sign in with Apple
+Needs a paid Apple Developer account.
+1. **Certificates, IDs & Profiles → Identifiers**: create an App ID with *Sign in with Apple*, then a **Services ID** (e.g. `com.throughmytrails.web`) and enable *Sign in with Apple* on it.
+2. Configure the Services ID with your domain (`www.throughmytrails.com`) and return URL (`https://www.throughmytrails.com/login`). Apple does not accept `localhost`, so test Apple on a real HTTPS domain.
+3. Set `APPLE_CLIENT_ID` (the Services ID) and `APPLE_REDIRECT_URI` (the return URL) and restart the API.
+
+Google and Apple ID tokens are verified on the server against the providers' public keys (issuer, audience, expiry). A Google or Apple sign-in with the same verified email as an existing account signs into that account.
+
+---
+
 ## Gmail App Password (for sending email)
 
 Gmail won't accept your normal password over SMTP. Create an **App Password**:
@@ -98,8 +139,11 @@ Gmail allows about 500 recipients a day. For higher volume, switch the `SMTP_*` 
 | `SMTP_HOST` / `SMTP_PORT` | | `smtp.gmail.com` / `465` | SMTP server (port 465 = TLS) |
 | `SMTP_USER` / `SMTP_PASS` | for email | | SMTP login (Gmail App Password) |
 | `MAIL_FROM` | | `Through My Trails <throughmytrails@gmail.com>` | From header |
-| `UPLOAD_DIR` | | `uploads` | Where images are stored (relative to `server/` or absolute) |
-| `MAX_UPLOAD_MB` | | `5` | Per-file limit |
+| `UPLOAD_DIR` | | `uploads` | Where uploads are stored (relative to `server/` or absolute) |
+| `MAX_UPLOAD_MB` | | `5` | Per-image limit |
+| `MAX_VIDEO_MB` / `MAX_AUDIO_MB` | | `40` / `10` | Per-clip / per-sound limits |
+| `GOOGLE_CLIENT_ID` | | | Enables "Continue with Google" |
+| `APPLE_CLIENT_ID` / `APPLE_REDIRECT_URI` | | | Enables "Continue with Apple" |
 | `TRUST_PROXY` | | | Set to `1` behind Render/Railway/Nginx so rate limits see the real client IP |
 
 ### `client/.env`
@@ -161,7 +205,23 @@ GET    /admin/settings/mail
 POST   /admin/settings/test-email     { to? }
 GET    /admin/me
 PATCH  /admin/me/password
+
+GET    /public/destinations | /public/destinations/:slug
+GET    /public/packages?destination&band&companion | /public/packages/:slug
+GET    /account/auth/config
+POST   /account/auth/code | /account/auth/code/verify | /account/auth/google | /account/auth/apple
+POST   /account/auth/refresh | /account/auth/logout
+GET    /account/me · PATCH /account/me · DELETE /account/me          traveller token
+GET    /account/saved · PUT|DELETE /account/saved/:destinationId
+GET    /account/trips · GET /account/trips/:id · POST /account/trips
+GET|POST /admin/destinations · PUT /admin/destinations/reorder
+GET|PUT|DELETE /admin/destinations/:id · PATCH /admin/destinations/:id/publish
+GET|POST /admin/packages · GET|PUT|DELETE /admin/packages/:id
+PATCH  /admin/packages/:id/publish · POST /admin/packages/:id/duplicate
+GET    /admin/travellers · GET|PATCH /admin/travellers/:id
 ```
+
+Traveller and admin sessions are completely separate: different refresh cookies (`tmt_urt` on `/api/account/auth`, `tmt_rt` on `/api/auth`), and traveller access tokens carry an audience that the admin API rejects (and vice versa).
 
 Every error has the same shape: `{ statusCode, error, message, details?, path, timestamp }`.
 
@@ -214,8 +274,10 @@ The admin refresh token is an httpOnly cookie. In production it is sent `SameSit
 1. **bcryptjs** (pure-JS bcrypt, same algorithm and hash format) is used instead of the native `bcrypt` package, to avoid native build steps on hosts.
 2. The hero image slot shows as a round photo inside the rotating ring. The `logo` slot replaces the full logo in the hero (when no hero photo is set) and the footer. The navbar and admin sidebar keep the supplied emblem.
 3. A trip card's image is its `trip:<key>` slot, so there is one source of truth whether it's set from **Image slots** or **Trip cards**. A trip card's key can't be changed after creation, so past enquiries stay linked. Removing a trip type keeps its enquiries (their trip type is shown by key).
-4. The hero and navbar CTAs still open WhatsApp, as in the original. The contact form is the new primary enquiry path, with "or chat on WhatsApp" pre-filled from whatever has been typed.
+4. The hero CTA and the floating button still open WhatsApp, as in the original; the navbar's "Plan my trip" now opens the trip planner. The contact form is the new primary enquiry path, with "or chat on WhatsApp" pre-filled from whatever has been typed.
 5. Reference numbers restart each calendar year (India time): `TMT-2026-0001`, … `TMT-2027-0001`.
 6. Honeypot submissions get a normal-looking success response but are not stored or emailed.
 7. Only one admin role exists. Additional admins can be added by inserting into `admin_users` (the seed shows how).
 8. The admin panel is beige-only (no dark theme), matching the brand.
+9. The reference site shows "Name from City · 9hr ago" on package cards. That isn't copied: it only works honestly when backed by real bookings, so it's left out rather than faked.
+10. Trip requests don't take payments; they start a conversation with a planner, like enquiries.

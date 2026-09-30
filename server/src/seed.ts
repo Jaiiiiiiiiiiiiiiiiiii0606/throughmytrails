@@ -3,6 +3,7 @@
  *   • the admin user from ADMIN_EMAIL / ADMIN_PASSWORD (skipped if it exists)
  *   • default site content: trip types, services, contact (skipped if it exists)
  *   • 15 realistic sample enquiries (only when there are no enquiries yet; use --force to add anyway)
+ *   • 20 sample destinations and 20 packages with photos, clips and sounds (only when there are no destinations yet)
  *
  *   npm run seed            # safe to run repeatedly
  *   npm run seed -- --force # add another 15 sample enquiries
@@ -16,6 +17,11 @@ import { AppModule } from './app.module';
 import { Budget, EnquiryStatus } from './common/constants';
 import { EnquiriesService } from './enquiries/enquiries.service';
 import { Enquiry, EnquiryDocument } from './enquiries/enquiry.schema';
+import { Destination, DestinationDocument } from './destinations/destination.schema';
+import { TravelPackage, TravelPackageDocument } from './packages/package.schema';
+import { SEED_DESTINATIONS, SEED_PACKAGES } from './seed-data/catalog';
+import { SEED_MEDIA } from './seed-data/media';
+import { slugify } from './common/slug';
 import { SiteContentService } from './site-content/site-content.service';
 
 type Sample = {
@@ -94,7 +100,53 @@ async function main() {
     console.log(`✓ Added ${SAMPLES.length} sample enquiries`);
   }
 
+  await seedCatalog(app);
   await app.close();
+}
+
+async function seedCatalog(app: Awaited<ReturnType<typeof NestFactory.createApplicationContext>>) {
+  const destinations = app.get<Model<DestinationDocument>>(getModelToken(Destination.name));
+  const packages = app.get<Model<TravelPackageDocument>>(getModelToken(TravelPackage.name));
+  const existing = await destinations.countDocuments();
+  if (existing > 0) {
+    console.log(`• ${existing} destinations already exist; skipping the sample catalogue`);
+    return;
+  }
+
+  const asset = (a?: { url: string; credit: string }, alt = '') => (a ? { url: a.url, credit: a.credit, alt } : undefined);
+  const ids = new Map<string, unknown>();
+  for (const [i, d] of SEED_DESTINATIONS.entries()) {
+    const m = SEED_MEDIA[d.slug];
+    const doc = await destinations.create({
+      ...d,
+      cities: d.cities.map(([name, nights, note]) => ({ name, nights, note: note ?? '' })),
+      cover: asset(m?.cover, d.name),
+      video: asset(m?.video),
+      audio: asset(m?.audio),
+      gallery: (m?.gallery ?? []).map((g) => asset(g, d.name)),
+      published: true,
+      order: i,
+    });
+    ids.set(d.slug, doc._id);
+  }
+
+  for (const [i, p] of SEED_PACKAGES.entries()) {
+    const nights = p.cities.reduce((n, [, c]) => n + c, 0);
+    if (p.itinerary.length !== nights + 1) console.warn(`  ! "${p.title}" has ${p.itinerary.length} itinerary days for ${nights} nights`);
+    await packages.create({
+      ...p,
+      slug: slugify(p.title),
+      destination: ids.get(p.destination),
+      nights,
+      cities: p.cities.map(([name, n]) => ({ name, nights: n })),
+      itinerary: p.itinerary.map(([title, description]) => ({ title, description })),
+      badge: p.badge ?? '',
+      featured: !!p.featured,
+      published: true,
+      order: i,
+    });
+  }
+  console.log(`✓ Added ${SEED_DESTINATIONS.length} destinations and ${SEED_PACKAGES.length} packages`);
 }
 
 main().catch((e) => {

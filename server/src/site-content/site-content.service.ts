@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
-import { FIXED_SLOTS, TRIP_SLOT_PREFIX } from '../common/constants';
+import { COMPANION_LABELS, COMPANION_SLOT_PREFIX, COMPANIONS, FIXED_SLOTS, TRIP_SLOT_PREFIX } from '../common/constants';
 import { Media, MediaDocument } from '../media/media.schema';
 import { DEFAULT_CONTACT, DEFAULT_SERVICES, DEFAULT_TRIP_TYPES } from './defaults';
 import { UpdateSiteContentDto } from './dto/update-site-content.dto';
@@ -80,6 +80,7 @@ export class SiteContentService {
           image: img(slots[TRIP_SLOT_PREFIX + t.key]),
         })),
       services: doc.services.map((s) => ({ icon: s.icon, title: s.title, description: s.description })),
+      companions: COMPANIONS.map((key) => ({ key, label: COMPANION_LABELS[key], image: img(slots[COMPANION_SLOT_PREFIX + key]) })),
       contact: await this.getContact(),
       updatedAt: (doc as unknown as { updatedAt?: Date }).updatedAt,
     };

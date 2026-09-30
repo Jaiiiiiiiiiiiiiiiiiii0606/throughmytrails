@@ -1,7 +1,8 @@
 /**
  * Minimal fetch wrapper.
- * - Access token lives in memory only; the refresh token is an httpOnly cookie the browser sends to /api/auth.
- * - On a 401 from an authenticated call, refreshes once (single-flight) and retries.
+ * - Two independent sessions: the admin (refresh cookie on /api/auth) and the traveller (refresh cookie on /api/account/auth).
+ * - Access tokens live in memory only; refresh tokens are httpOnly cookies the browser sends to their auth path.
+ * - On a 401 from an authenticated call, refreshes once (single-flight per session) and retries.
  */
 
 export const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
@@ -22,18 +23,28 @@ export class ApiError extends Error {
   }
 }
 
-let accessToken: string | null = null;
-let refreshing: Promise<string | null> | null = null;
-let onAuthLost: (() => void) | null = null;
-let onTokenRefreshed: ((token: string, user: unknown) => void) | null = null;
+export type SessionName = 'admin' | 'user';
 
-export function setAccessToken(token: string | null) {
-  accessToken = token;
+interface Session {
+  refreshPath: string;
+  token: string | null;
+  refreshing: Promise<string | null> | null;
+  onLost: (() => void) | null;
+  onRefreshed: ((token: string, user: unknown) => void) | null;
 }
 
-export function setAuthHandlers(h: { lost: () => void; refreshed: (token: string, user: unknown) => void }) {
-  onAuthLost = h.lost;
-  onTokenRefreshed = h.refreshed;
+const sessions: Record<SessionName, Session> = {
+  admin: { refreshPath: '/api/auth/refresh', token: null, refreshing: null, onLost: null, onRefreshed: null },
+  user: { refreshPath: '/api/account/auth/refresh', token: null, refreshing: null, onLost: null, onRefreshed: null },
+};
+
+export function setAccessToken(token: string | null, session: SessionName = 'admin') {
+  sessions[session].token = token;
+}
+
+export function setAuthHandlers(h: { lost: () => void; refreshed: (token: string, user: unknown) => void }, session: SessionName = 'admin') {
+  sessions[session].onLost = h.lost;
+  sessions[session].onRefreshed = h.refreshed;
 }
 
 async function parseError(res: Response): Promise<ApiError> {
@@ -50,32 +61,36 @@ async function parseError(res: Response): Promise<ApiError> {
 }
 
 /** Exchanges the refresh cookie for a new access token. Resolves null when signed out. */
-export function refreshAccessToken(): Promise<string | null> {
-  if (!refreshing) {
-    refreshing = fetch(`${API_BASE}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+export function refreshAccessToken(session: SessionName = 'admin'): Promise<string | null> {
+  const s = sessions[session];
+  if (!s.refreshing) {
+    s.refreshing = fetch(`${API_BASE}${s.refreshPath}`, { method: 'POST', credentials: 'include' })
       .then(async (res) => {
         if (!res.ok) return null;
         const body = await res.json();
-        accessToken = body.accessToken;
-        onTokenRefreshed?.(body.accessToken, body.user);
+        s.token = body.accessToken;
+        s.onRefreshed?.(body.accessToken, body.user);
         return body.accessToken as string;
       })
       .catch(() => null)
       .finally(() => {
-        refreshing = null;
+        s.refreshing = null;
       });
   }
-  return refreshing;
+  return s.refreshing;
 }
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  auth?: boolean;
+  /** true (or 'admin') for the admin session, 'user' for the traveller session. */
+  auth?: boolean | SessionName;
   raw?: boolean;
 }
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { body, auth = false, raw = false, headers, ...rest } = opts;
+  const session = auth ? sessions[auth === true ? 'admin' : auth] : null;
+  const sessionName: SessionName = auth === 'user' ? 'user' : 'admin';
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const doFetch = () =>
@@ -85,7 +100,7 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
       headers: {
         Accept: 'application/json',
         ...(body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : {}),
-        ...(auth && accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}),
         ...headers,
       },
       body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
@@ -98,11 +113,11 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
     throw new ApiError(0, "We couldn't reach the server. Check your connection and try again.");
   }
 
-  if (auth && res.status === 401) {
-    const token = await refreshAccessToken();
+  if (session && res.status === 401) {
+    const token = await refreshAccessToken(sessionName);
     if (!token) {
-      onAuthLost?.();
-      throw new ApiError(401, 'Your session has expired. Please sign in again.');
+      session.onLost?.();
+      throw new ApiError(401, sessionName === 'user' ? 'Please sign in to continue.' : 'Your session has expired. Please sign in again.');
     }
     res = await doFetch();
   }
@@ -113,8 +128,9 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   return (await res.json()) as T;
 }
 
-/** Upload with progress events (fetch has no upload progress). */
+/** Admin upload with progress events (fetch has no upload progress). */
 export function uploadWithProgress<T>(path: string, form: FormData, onProgress: (fraction: number) => void): Promise<T> {
+  const admin = sessions.admin;
   const send = (token: string | null) =>
     new Promise<{ status: number; body: string }>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -128,11 +144,11 @@ export function uploadWithProgress<T>(path: string, form: FormData, onProgress: 
     });
 
   return (async () => {
-    let r = await send(accessToken);
+    let r = await send(admin.token);
     if (r.status === 401) {
-      const token = await refreshAccessToken();
+      const token = await refreshAccessToken('admin');
       if (!token) {
-        onAuthLost?.();
+        admin.onLost?.();
         throw new ApiError(401, 'Your session has expired. Please sign in again.');
       }
       r = await send(token);

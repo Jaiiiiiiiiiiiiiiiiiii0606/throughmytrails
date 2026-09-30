@@ -14,7 +14,14 @@ export interface AppConfig {
   smtp: { host: string; port: number; user?: string; pass?: string; from: string };
   uploadDir: string;
   maxUploadBytes: number;
+  maxVideoBytes: number;
+  maxAudioBytes: number;
   trustProxy: boolean;
+  /** Traveller sign-in with Google (Google Identity Services web client id). Empty hides the button. */
+  googleClientId?: string;
+  /** Sign in with Apple: the Services ID and the return URL registered for it. Empty hides the button. */
+  appleClientId?: string;
+  appleRedirectUri?: string;
 }
 
 const REQUIRED = ['MONGODB_URI', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const;
@@ -56,7 +63,12 @@ export function loadConfig(config: ConfigService): AppConfig {
     },
     uploadDir: get('UPLOAD_DIR', 'uploads'),
     maxUploadBytes: Math.round(parseFloat(get('MAX_UPLOAD_MB', '5')) * 1024 * 1024),
+    maxVideoBytes: Math.round(parseFloat(get('MAX_VIDEO_MB', '40')) * 1024 * 1024),
+    maxAudioBytes: Math.round(parseFloat(get('MAX_AUDIO_MB', '10')) * 1024 * 1024),
     trustProxy: ['1', 'true', 'yes'].includes(get('TRUST_PROXY').toLowerCase()),
+    googleClientId: get('GOOGLE_CLIENT_ID') || undefined,
+    appleClientId: get('APPLE_CLIENT_ID') || undefined,
+    appleRedirectUri: get('APPLE_REDIRECT_URI') || undefined,
   };
 }
 

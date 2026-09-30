@@ -4,7 +4,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useStats } from '../../api/admin';
 import { useAuth } from '../../auth/AuthContext';
 import '../../theme/admin.css';
-import { DashIcon, ExternalIcon, GearIcon, ImageIcon, InboxIcon, LogoutIcon, MenuIcon } from './AdminIcons';
+import { DashIcon, ExternalIcon, GearIcon, ImageIcon, InboxIcon, LogoutIcon, MapPinIcon, MenuIcon, SuitcaseIcon, UsersIcon } from './AdminIcons';
 import { ToastProvider } from './Toast';
 
 function Brand() {
@@ -35,6 +35,15 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
         <NavLink to="/admin/enquiries" className={link} onClick={onNavigate}>
           <InboxIcon /> Enquiries
           {fresh > 0 && <span className="count" aria-label={`${fresh} new`}>{fresh}</span>}
+        </NavLink>
+        <NavLink to="/admin/destinations" className={link} onClick={onNavigate}>
+          <MapPinIcon /> Destinations
+        </NavLink>
+        <NavLink to="/admin/packages" className={link} onClick={onNavigate}>
+          <SuitcaseIcon /> Packages
+        </NavLink>
+        <NavLink to="/admin/travellers" className={link} onClick={onNavigate}>
+          <UsersIcon /> Travellers
         </NavLink>
         <NavLink to="/admin/media" className={link} onClick={onNavigate}>
           <ImageIcon /> Media & content

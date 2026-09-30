@@ -1,17 +1,27 @@
-import { BadGatewayException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model, Types } from 'mongoose';
 import { BUDGET_LABELS, Budget, STATUS_LABELS } from '../common/constants';
+import { planRows } from '../common/plan-format';
 import { escapeRegex } from '../common/sanitize';
+import { DestinationsService } from '../destinations/destinations.service';
+import { PackagesService } from '../packages/packages.service';
+import { UsersService } from '../users/users.service';
 import { MailEnquiry, MailService } from '../mail/mail.service';
 import { SiteContentService } from '../site-content/site-content.service';
 import { AddNoteDto, BulkStatusDto, ListEnquiriesQuery, UpdateEnquiryDto } from './dto/admin-enquiry.dto';
 import { CreateEnquiryDto } from './dto/create-enquiry.dto';
-import { Counter, Enquiry, EnquiryDocument } from './enquiry.schema';
+import { TripRequestDto } from './dto/trip-request.dto';
+import { Counter, Enquiry, EnquiryDocument, TripPlan } from './enquiry.schema';
 
 export const REFERENCE_TZ = 'Asia/Kolkata';
 
-const LIST_FIELDS = 'referenceId name email phone destination travelDates travellers budget tripType status source emailStatus createdAt';
+const LIST_FIELDS = 'referenceId name email phone destination travelDates travellers budget tripType status source emailStatus createdAt user';
+
+/** What a traveller may see about their own requests (never internal notes or delivery logs). */
+const TRAVELLER_FIELDS = 'referenceId destination travelDates travellers status source plan message createdAt updatedAt';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class EnquiriesService implements OnModuleDestroy {
@@ -23,6 +33,9 @@ export class EnquiriesService implements OnModuleDestroy {
     @InjectModel(Counter.name) private readonly counters: Model<Counter>,
     private readonly mail: MailService,
     private readonly content: SiteContentService,
+    private readonly destinations: DestinationsService,
+    private readonly packages: PackagesService,
+    private readonly users: UsersService,
   ) {}
 
   /** Let queued emails finish on graceful shutdown. */
@@ -73,6 +86,119 @@ export class EnquiriesService implements OnModuleDestroy {
     return enquiry;
   }
 
+  /** A signed-in traveller's request from the trip planner (optionally customising a package). */
+  async createTrip(userId: string, dto: TripRequestDto, meta: { ip?: string; userAgent?: string }) {
+    const user = await this.users.findById(userId);
+    if (!user) throw new NotFoundException('Please sign in again.');
+    const name = (dto.name || user.name).trim();
+    const phone = (dto.phone || user.phone).trim();
+    if (name.length < 2) throw new BadRequestException('Please tell us your name.');
+    if (!phone) throw new BadRequestException('Add a phone number so our planner can reach you.');
+
+    const pkg = dto.package ? await this.packages.findPublished(dto.package) : null;
+    if (dto.package && !pkg) throw new BadRequestException('That package is no longer available. Pick another or plan from scratch.');
+    const destKey = pkg ? String(pkg.destination) : dto.destination;
+    const dest = destKey ? await this.destinations.findPublished(destKey) : null;
+    if (destKey && !dest) throw new BadRequestException('That destination is no longer available.');
+    const destinationName = dest?.name ?? dto.destinationName?.trim();
+    if (!destinationName) throw new BadRequestException('Where would you like to go?');
+
+    const cities = dto.cities ?? [];
+    const cityNights = cities.reduce((n, c) => n + c.nights, 0);
+    if (cities.length && cityNights !== dto.nights) {
+      throw new BadRequestException(`Your cities add up to ${cityNights} nights, but the trip is ${dto.nights} nights.`);
+    }
+
+    const today = new Date(Date.now() - DAY_MS); // allow "today" in any timezone
+    const startDate = dto.startDate ? new Date(dto.startDate) : null;
+    if (startDate && (startDate < today || startDate.getTime() > Date.now() + 2 * 365 * DAY_MS)) {
+      throw new BadRequestException('Choose a start date within the next two years.');
+    }
+    if (!startDate && !dto.month) throw new BadRequestException('When would you like to travel? Pick a date or a month.');
+
+    const children = dto.children ?? 0;
+    const plan: TripPlan = {
+      destinationSlug: dest?.slug,
+      packageSlug: pkg?.slug,
+      packageTitle: pkg?.title,
+      companion: dto.companion,
+      adults: dto.adults,
+      children,
+      childAges: (dto.childAges ?? []).slice(0, children),
+      infants: dto.infants ?? 0,
+      rooms: dto.rooms ?? 1,
+      startDate,
+      month: startDate ? undefined : dto.month,
+      flexibleDates: !!dto.flexibleDates || !startDate,
+      nights: dto.nights,
+      cities,
+      budget: dto.budget,
+      stays: [...new Set(dto.stays ?? [])],
+      pace: dto.pace ?? 'balanced',
+      interests: [...new Set(dto.interests ?? [])],
+      occasion: dto.occasion ?? '',
+      departureCity: dto.departureCity ?? '',
+      needFlights: dto.needFlights ?? true,
+      needVisa: dto.needVisa ?? false,
+      needInsurance: dto.needInsurance ?? false,
+    };
+
+    const when = startDate
+      ? new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(startDate)
+      : new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${dto.month}-01T00:00:00Z`));
+    const travelDates = `${when}${plan.flexibleDates ? ' (flexible)' : ''} · ${dto.nights} ${dto.nights === 1 ? 'night' : 'nights'}`;
+
+    const enquiry = await this.model.create({
+      referenceId: await this.nextReferenceId(),
+      name,
+      email: user.email,
+      phone,
+      destination: destinationName,
+      travelDates,
+      travellers: plan.adults + plan.children + plan.infants,
+      budget: null,
+      tripType: '',
+      message: dto.notes ?? '',
+      source: pkg ? 'package' : 'planner',
+      user: user._id,
+      plan,
+      ip: meta.ip,
+      userAgent: meta.userAgent?.slice(0, 300),
+    });
+
+    // Remember details for next time without overwriting what the traveller already set.
+    await this.users.update(userId, {
+      ...(user.name ? {} : { name }),
+      ...(user.phone ? {} : { phone }),
+      preferences: { companion: plan.companion, budget: plan.budget, interests: plan.interests },
+    });
+
+    this.track(this.dispatchNewEnquiryEmails(enquiry));
+    return this.getForUser(userId, enquiry.id);
+  }
+
+  async listForUser(userId: string) {
+    const items = await this.model
+      .find({ user: new Types.ObjectId(userId), isDeleted: false })
+      .select(TRAVELLER_FIELDS)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+    return items.map(({ _id, ...e }) => ({ ...e, id: String(_id) }));
+  }
+
+  async getForUser(userId: string, id: string) {
+    const e = await this.model.findOne({ _id: id, user: new Types.ObjectId(userId), isDeleted: false }).select(TRAVELLER_FIELDS).lean();
+    if (!e) throw new NotFoundException('We could not find that trip.');
+    const { _id, ...rest } = e;
+    return { ...rest, id: String(_id) };
+  }
+
+  /** Travellers deleting their account: keep the lead for the business but drop the link to the account. */
+  async detachUser(userId: string) {
+    await this.model.updateMany({ user: new Types.ObjectId(userId) }, { $unset: { user: 1 } });
+  }
+
   private track(p: Promise<unknown>) {
     this.inFlight.add(p);
     p.finally(() => this.inFlight.delete(p));
@@ -93,6 +219,7 @@ export class EnquiriesService implements OnModuleDestroy {
       message: e.message,
       source: e.source,
       createdAt: e.createdAt,
+      plan: e.plan,
     };
   }
 
@@ -233,7 +360,7 @@ export class EnquiriesService implements OnModuleDestroy {
     const tripTitle = new Map(doc.tripTypes.map((t) => [t.key, t.title]));
     const fmt = new Intl.DateTimeFormat('en-GB', { dateStyle: 'short', timeStyle: 'short', timeZone: REFERENCE_TZ });
 
-    const header = ['Reference', 'Received (IST)', 'Status', 'Name', 'Email', 'Phone', 'Destination', 'Travel dates', 'Travellers', 'Budget', 'Trip type', 'Source', 'Message', 'Notes'];
+    const header = ['Reference', 'Received (IST)', 'Status', 'Name', 'Email', 'Phone', 'Destination', 'Travel dates', 'Travellers', 'Budget', 'Trip type', 'Source', 'Trip plan', 'Message', 'Notes'];
     yield '﻿' + header.map(csvCell).join(',') + '\r\n';
 
     const cursor = this.model
@@ -255,6 +382,7 @@ export class EnquiriesService implements OnModuleDestroy {
         e.budget ? BUDGET_LABELS[e.budget as Budget] : '',
         tripTitle.get(e.tripType) ?? e.tripType,
         e.source,
+        e.plan ? planRows(e.plan).map((r) => `${r.label}: ${r.value}`).join('\n') : '',
         e.message,
         e.notes.map((n) => `[${fmt.format(n.createdAt)} ${n.author}] ${n.text}`).join('\n'),
       ]
