@@ -7,8 +7,14 @@ Phone:       {{enquiry.phone}}
 Destination: {{enquiry.destination}}
 Dates:       {{enquiry.travelDates}}
 Travellers:  {{enquiry.travellers}}
+{{#if enquiry.planRows.length}}
+{{#each enquiry.planRows}}
+{{this.label}}: {{this.value}}
+{{/each}}
+{{else}}
 Budget:      {{enquiry.budget}}
 Trip type:   {{enquiry.tripType}}
+{{/if}}
 
 Message:
 {{enquiry.message}}

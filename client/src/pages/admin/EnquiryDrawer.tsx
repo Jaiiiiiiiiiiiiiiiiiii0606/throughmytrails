@@ -12,7 +12,20 @@ import { ConfirmDialog, useFocusTrap } from '../../components/admin/Overlay';
 import { DeliveryBadge, StatusBadge } from '../../components/admin/StatusBadge';
 import { useToast } from '../../components/admin/Toast';
 import { ChatIcon, MailIcon, PhoneIcon } from '../../components/illustrations/Icons';
-import { BUDGETS, BUDGET_LABELS, Budget, ENQUIRY_STATUSES, EnquiryStatus, STATUS_LABELS } from '../../lib/constants';
+import { Link } from 'react-router-dom';
+import {
+  BUDGETS,
+  BUDGET_LABELS,
+  Budget,
+  COMPANION_LABELS,
+  ENQUIRY_STATUSES,
+  EnquiryStatus,
+  PLAN_BUDGET_INFO,
+  PLAN_INTEREST_LABELS,
+  PLAN_PACE_INFO,
+  PLAN_STAY_LABELS,
+  STATUS_LABELS,
+} from '../../lib/constants';
 import { firstName, formatDate, relativeTime, telHref, waLinkForPhone } from '../../lib/format';
 
 interface Props {
@@ -127,6 +140,9 @@ function DrawerContent({ id, onClose, tripTitles }: { id: string; onClose: () =>
           <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <StatusBadge status={e.status} />
             {e.source === 'trip-card' && <span className="badge">From a trip card</span>}
+            {e.source === 'planner' && <span className="badge">From the trip planner</span>}
+            {e.source === 'package' && <span className="badge">Customised package</span>}
+            {e.user && <Link className="badge" to={`/admin/travellers/${e.user}`}>Signed-in traveller →</Link>}
           </div>
         </div>
         <button type="button" className="icon-btn" onClick={onClose} aria-label="Close details">
@@ -179,6 +195,8 @@ function DrawerContent({ id, onClose, tripTitles }: { id: string; onClose: () =>
           )}
         </section>
 
+        {e.plan && <PlanCard plan={e.plan} />}
+
         <section className="card" aria-labelledby="enq-email">
           <h2 id="enq-email" style={{ fontSize: 22 }}>Email delivery</h2>
           <div className="email-row" style={{ margin: '12px 0' }}>
@@ -211,6 +229,34 @@ function DrawerContent({ id, onClose, tripTitles }: { id: string; onClose: () =>
         onCancel={() => setConfirmDelete(false)}
       />
     </>
+  );
+}
+
+function PlanCard({ plan: p }: { plan: NonNullable<Enquiry['plan']> }) {
+  const who = [
+    `${p.adults} ${p.adults === 1 ? 'adult' : 'adults'}`,
+    p.children ? `${p.children} ${p.children === 1 ? 'child' : 'children'}${p.childAges.length ? ` (ages ${p.childAges.join(', ')})` : ''}` : '',
+    p.infants ? `${p.infants} ${p.infants === 1 ? 'infant' : 'infants'}` : '',
+  ].filter(Boolean);
+  const when = p.startDate ? formatDate(p.startDate) : p.month ? new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(`${p.month}-01T00:00:00`)) : '—';
+  return (
+    <section className="card" aria-labelledby="enq-plan">
+      <h2 id="enq-plan" style={{ fontSize: 22 }}>Trip plan</h2>
+      <p className="card-sub">What the traveller chose in the planner.</p>
+      <dl className="kv">
+        {p.packageTitle && (<><dt>Package</dt><dd>{p.packageSlug ? <a href={`/packages/${p.packageSlug}`} target="_blank" rel="noopener noreferrer">{p.packageTitle}</a> : p.packageTitle}</dd></>)}
+        <dt>Who</dt><dd>{COMPANION_LABELS[p.companion]} · {who.join(', ')} · {p.rooms} {p.rooms === 1 ? 'room' : 'rooms'}</dd>
+        <dt>Start</dt><dd>{when}{p.flexibleDates ? ' (flexible)' : ''} · {p.nights} nights</dd>
+        {p.cities.length > 0 && (<><dt>Route</dt><dd>{p.cities.map((c) => `${c.name} ${c.nights}N`).join(' → ')}</dd></>)}
+        <dt>Budget</dt><dd>{PLAN_BUDGET_INFO[p.budget]?.label} ({PLAN_BUDGET_INFO[p.budget]?.hint})</dd>
+        <dt>Pace</dt><dd>{PLAN_PACE_INFO[p.pace]?.label}</dd>
+        {p.stays.length > 0 && (<><dt>Stays</dt><dd>{p.stays.map((x) => PLAN_STAY_LABELS[x]).join(', ')}</dd></>)}
+        {p.interests.length > 0 && (<><dt>Loves</dt><dd>{p.interests.map((x) => PLAN_INTEREST_LABELS[x]).join(', ')}</dd></>)}
+        {p.occasion && (<><dt>Occasion</dt><dd>{p.occasion}</dd></>)}
+        <dt>Flights</dt><dd>{p.needFlights ? `Yes${p.departureCity ? `, from ${p.departureCity}` : ''}` : 'Not needed'}</dd>
+        <dt>Extras</dt><dd>{[p.needVisa && 'Visa help', p.needInsurance && 'Travel insurance'].filter(Boolean).join(', ') || '—'}</dd>
+      </dl>
+    </section>
   );
 }
 

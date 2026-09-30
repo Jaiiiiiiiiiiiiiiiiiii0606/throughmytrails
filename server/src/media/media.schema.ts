@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { MEDIA_KINDS, MediaKind } from '../common/constants';
 
 export type MediaDocument = HydratedDocument<Media>;
 
@@ -18,6 +19,9 @@ export class Media {
 
   @Prop({ required: true })
   mimeType: string;
+
+  @Prop({ type: String, enum: MEDIA_KINDS, default: 'image' })
+  kind: MediaKind;
 
   @Prop({ required: true })
   size: number;
