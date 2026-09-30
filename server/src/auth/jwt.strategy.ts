@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { APP_CONFIG, AppConfig } from '../config';
@@ -15,7 +15,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: JwtUser & { typ?: string }): JwtUser {
+  validate(payload: JwtUser & { typ?: string; aud?: string | string[] }): JwtUser {
+    // Traveller tokens share the signing key but carry an audience; they must never open the admin API.
+    if (payload.aud !== undefined) throw new UnauthorizedException();
     return { sub: payload.sub, email: payload.email, name: payload.name };
   }
 }

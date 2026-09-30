@@ -2,7 +2,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { EnquiryStatus } from '../lib/constants';
 import { API_BASE, api, uploadWithProgress } from './client';
 import type {
+  AdminDestination,
+  AdminPackage,
   AdminSiteContent,
+  AdminTraveller,
+  DestinationInput,
+  PackageInput,
   Enquiry,
   EnquiryFilters,
   EnquirySummary,
@@ -156,5 +161,124 @@ export const useChangePassword = () =>
     // The server signs out every session on a password change; the caller then asks for a fresh sign-in.
     mutationFn: (body: { currentPassword: string; newPassword: string }) => api('/admin/me/password', { ...A, method: 'PATCH', body }),
   });
+
+// ── Destinations ──
+function invalidateCatalog(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin', 'destinations'] });
+  qc.invalidateQueries({ queryKey: ['admin', 'packages'] });
+  qc.invalidateQueries({ queryKey: ['admin', 'media'] });
+  qc.invalidateQueries({ queryKey: ['destinations'] });
+  qc.invalidateQueries({ queryKey: ['destination'] });
+  qc.invalidateQueries({ queryKey: ['packages'] });
+  qc.invalidateQueries({ queryKey: ['package'] });
+}
+
+export const useAdminDestinations = () =>
+  useQuery({ queryKey: ['admin', 'destinations'], queryFn: () => api<AdminDestination[]>('/admin/destinations', A) });
+
+export const useAdminDestination = (id: string | undefined) =>
+  useQuery({ queryKey: ['admin', 'destination', id], queryFn: () => api<AdminDestination>(`/admin/destinations/${id}`, A), enabled: !!id && id !== 'new' });
+
+export function useSaveDestination() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: DestinationInput }) =>
+      api<AdminDestination>(id ? `/admin/destinations/${id}` : '/admin/destinations', { ...A, method: id ? 'PUT' : 'POST', body }),
+    onSuccess: (d) => {
+      qc.setQueryData(['admin', 'destination', d.id], d);
+      invalidateCatalog(qc);
+    },
+  });
+}
+
+export function usePublishDestination() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, published }: { id: string; published: boolean }) =>
+      api<AdminDestination>(`/admin/destinations/${id}/publish`, { ...A, method: 'PATCH', body: { published } }),
+    onSuccess: () => invalidateCatalog(qc),
+  });
+}
+
+export function useReorderDestinations() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api<AdminDestination[]>('/admin/destinations/reorder', { ...A, method: 'PUT', body: { ids } }),
+    onSuccess: (list) => {
+      qc.setQueryData(['admin', 'destinations'], list);
+      invalidateCatalog(qc);
+    },
+  });
+}
+
+export function useDeleteDestination() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/admin/destinations/${id}`, { ...A, method: 'DELETE' }),
+    onSuccess: () => invalidateCatalog(qc),
+  });
+}
+
+// ── Packages ──
+export const useAdminPackages = () => useQuery({ queryKey: ['admin', 'packages'], queryFn: () => api<AdminPackage[]>('/admin/packages', A) });
+
+export const useAdminPackage = (id: string | undefined) =>
+  useQuery({ queryKey: ['admin', 'package', id], queryFn: () => api<AdminPackage>(`/admin/packages/${id}`, A), enabled: !!id && id !== 'new' });
+
+export function useSavePackage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: PackageInput }) =>
+      api<AdminPackage>(id ? `/admin/packages/${id}` : '/admin/packages', { ...A, method: id ? 'PUT' : 'POST', body }),
+    onSuccess: (p) => {
+      qc.setQueryData(['admin', 'package', p.id], p);
+      invalidateCatalog(qc);
+    },
+  });
+}
+
+export function usePublishPackage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, published }: { id: string; published: boolean }) =>
+      api<AdminPackage>(`/admin/packages/${id}/publish`, { ...A, method: 'PATCH', body: { published } }),
+    onSuccess: () => invalidateCatalog(qc),
+  });
+}
+
+export function useDuplicatePackage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<AdminPackage>(`/admin/packages/${id}/duplicate`, { ...A, method: 'POST' }),
+    onSuccess: () => invalidateCatalog(qc),
+  });
+}
+
+export function useDeletePackage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/admin/packages/${id}`, { ...A, method: 'DELETE' }),
+    onSuccess: () => invalidateCatalog(qc),
+  });
+}
+
+// ── Travellers ──
+export const useTravellers = (f: { q?: string; page?: number }) =>
+  useQuery({
+    queryKey: ['admin', 'travellers', f],
+    queryFn: () => api<Paginated<AdminTraveller>>(`/admin/travellers${toQuery(f as EnquiryFilters)}`, A),
+    placeholderData: keepPreviousData,
+  });
+
+export const useTraveller = (id: string | undefined) =>
+  useQuery({ queryKey: ['admin', 'traveller', id], queryFn: () => api<AdminTraveller>(`/admin/travellers/${id}`, A), enabled: !!id });
+
+export function useBlockTraveller() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) => api<AdminTraveller>(`/admin/travellers/${id}`, { ...A, method: 'PATCH', body: { blocked } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'traveller'] }).then(() => qc.invalidateQueries({ queryKey: ['admin', 'travellers'] })),
+  });
+}
 
 export { API_BASE };

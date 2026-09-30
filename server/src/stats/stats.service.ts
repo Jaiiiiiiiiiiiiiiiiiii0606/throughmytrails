@@ -5,6 +5,7 @@ import { ENQUIRY_STATUSES, EnquiryStatus, STATUS_LABELS } from '../common/consta
 import { REFERENCE_TZ } from '../enquiries/enquiries.service';
 import { Enquiry, EnquiryDocument } from '../enquiries/enquiry.schema';
 import { SiteContentService } from '../site-content/site-content.service';
+import { User, UserDocument } from '../users/user.schema';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -13,6 +14,7 @@ export class StatsService {
   constructor(
     @InjectModel(Enquiry.name) private readonly model: Model<EnquiryDocument>,
     private readonly content: SiteContentService,
+    @InjectModel(User.name) private readonly users: Model<UserDocument>,
   ) {}
 
   private dayKey(d: Date) {
@@ -26,6 +28,11 @@ export class StatsService {
     const since7 = new Date(now.getTime() - 7 * DAY);
     const since14 = new Date(now.getTime() - 14 * DAY);
 
+    const [travellers, travellersThisWeek, plannerRequests] = await Promise.all([
+      this.users.estimatedDocumentCount(),
+      this.users.countDocuments({ createdAt: { $gte: since7 } }),
+      this.model.countDocuments({ ...live, source: { $in: ['planner', 'package'] } }),
+    ]);
     const [total, fresh, thisWeek, lastWeek, perDayRaw, byTripRaw, byStatusRaw, topDest, recent, doc] = await Promise.all([
       this.model.countDocuments(live),
       this.model.countDocuments({ ...live, status: 'new' }),
@@ -83,6 +90,9 @@ export class StatsService {
         lastWeek,
         booked,
         conversionRate: total ? booked / total : 0,
+        travellers,
+        travellersThisWeek,
+        plannerRequests,
       },
       perDay,
       byTripType,
