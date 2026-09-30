@@ -4,7 +4,9 @@ import { MulterModule } from '@nestjs/platform-express';
 import { mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { IMAGE_MIME_TYPES } from '../common/constants';
+import { mediaKindOf } from '../common/constants';
+import { Destination, DestinationSchema } from '../destinations/destination.schema';
+import { TravelPackage, TravelPackageSchema } from '../packages/package.schema';
 import { APP_CONFIG, AppConfig } from '../config';
 import { SiteContentModule } from '../site-content/site-content.module';
 import { MAX_FILES_PER_UPLOAD, MediaController } from './media.controller';
@@ -14,7 +16,11 @@ import { ALLOWED_EXTENSIONS, randomFilename, resolveUploadDir } from './upload.u
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Media.name, schema: MediaSchema }]),
+    MongooseModule.forFeature([
+      { name: Media.name, schema: MediaSchema },
+      { name: Destination.name, schema: DestinationSchema },
+      { name: TravelPackage.name, schema: TravelPackageSchema },
+    ]),
     SiteContentModule,
     MulterModule.registerAsync({
       inject: [APP_CONFIG],
@@ -26,12 +32,16 @@ import { ALLOWED_EXTENSIONS, randomFilename, resolveUploadDir } from './upload.u
             destination: dir,
             filename: (_req, file, cb) => cb(null, randomFilename(file.mimetype)),
           }),
-          limits: { fileSize: config.maxUploadBytes, files: MAX_FILES_PER_UPLOAD, fields: 10, parts: MAX_FILES_PER_UPLOAD + 10 },
+          // The per-kind limits (image / video / audio) are enforced after upload in MediaService.
+          limits: { fileSize: Math.max(config.maxUploadBytes, config.maxVideoBytes, config.maxAudioBytes), files: MAX_FILES_PER_UPLOAD, fields: 10, parts: MAX_FILES_PER_UPLOAD + 10 },
           fileFilter: (_req, file, cb) => {
-            const okMime = (IMAGE_MIME_TYPES as readonly string[]).includes(file.mimetype);
+            const okMime = !!mediaKindOf(file.mimetype);
             const okExt = ALLOWED_EXTENSIONS.includes(extname(file.originalname).toLowerCase());
             if (!okMime || !okExt) {
-              return cb(new BadRequestException(`"${file.originalname}" is not allowed. Use JPG, PNG or WebP.`), false);
+              return cb(
+                new BadRequestException(`"${file.originalname}" is not allowed. Use JPG, PNG or WebP images, MP4 or WebM clips, or MP3/M4A/OGG/WAV audio.`),
+                false,
+              );
             }
             cb(null, true);
           },

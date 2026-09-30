@@ -1,8 +1,9 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useScrollProgress } from '../../hooks/useScrollProgress';
-import { waLink } from '../../lib/format';
+import { AccountButton } from '../traveller/AccountButton';
 
-export function Navbar({ whatsapp }: { whatsapp: string }) {
+export function Navbar() {
   const bar = useRef<HTMLDivElement>(null);
   const nav = useRef<HTMLElement>(null);
   useScrollProgress(bar, nav);
@@ -17,14 +18,18 @@ export function Navbar({ whatsapp }: { whatsapp: string }) {
             <span className="script">Through My Trails</span>
           </a>
           <nav className="nav-links" aria-label="Sections">
+            <Link className="link" to="/explore">Explore</Link>
             <a className="link" href="#services">Services</a>
             <a className="link" href="#trips">Trips</a>
             <a className="link" href="#how">How it works</a>
             <a className="link" href="#contact">Contact</a>
           </nav>
-          <a className="btn dark" href={waLink(whatsapp)} target="_blank" rel="noopener noreferrer">
-            Plan my trip
-          </a>
+          <div className="nav-right">
+            <AccountButton />
+            <Link className="btn dark" to="/plan">
+              Plan my trip
+            </Link>
+          </div>
         </div>
       </header>
     </>

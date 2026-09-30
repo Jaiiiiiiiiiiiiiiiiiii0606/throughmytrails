@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { CatalogModule } from '../destinations/catalog.module';
 import { MailModule } from '../mail/mail.module';
+import { UsersModule } from '../users/users.module';
 import { SiteContentModule } from '../site-content/site-content.module';
 import { AdminEnquiriesController, PublicEnquiriesController } from './enquiries.controller';
 import { EnquiriesService } from './enquiries.service';
@@ -14,6 +16,8 @@ import { Counter, CounterSchema, Enquiry, EnquirySchema } from './enquiry.schema
     ]),
     MailModule,
     SiteContentModule,
+    CatalogModule,
+    UsersModule,
   ],
   controllers: [PublicEnquiriesController, AdminEnquiriesController],
   providers: [EnquiriesService],

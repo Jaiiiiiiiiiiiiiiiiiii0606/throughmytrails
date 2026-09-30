@@ -4,11 +4,12 @@ import { ApiError, assetUrl } from '../../../api/client';
 import { useToast } from '../../../components/admin/Toast';
 import { TripIllustration } from '../../../components/illustrations/TripIllustration';
 import { MediaPicker } from './MediaPicker';
-import { TRIP_SLOT_PREFIX, slotHelp, slotLabel } from './slots';
+import { COMPANION_SLOT_PREFIX, TRIP_SLOT_PREFIX, slotHelp, slotLabel } from './slots';
 
 function Fallback({ slot, illustration }: { slot: string; illustration?: string }) {
   if (slot === 'about') return <img src="/assets/card.jpg" alt="" />;
   if (slot === 'hero' || slot === 'logo') return <img className="contain" src="/assets/logo-full.png" alt="" />;
+  if (slot.startsWith(COMPANION_SLOT_PREFIX)) return <span className="companion-fallback" aria-hidden="true">Illustrated circle</span>;
   return <TripIllustration kind={(illustration ?? 'mountains') as never} />;
 }
 
