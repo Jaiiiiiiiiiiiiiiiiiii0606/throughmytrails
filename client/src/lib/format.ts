@@ -56,3 +56,34 @@ export function slugify(s: string): string {
 export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || 'traveller';
 }
+
+const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+
+/** ₹1,01,788 */
+export function formatINR(n: number): string {
+  return inr.format(n);
+}
+
+/** ₹1.2L / ₹45K, for tight spaces. */
+export function formatINRShort(n: number): string {
+  if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
+  if (n >= 1000) return `₹${Math.round(n / 1000)}K`;
+  return `₹${n}`;
+}
+
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** "Krabi (4N) +1 more" */
+export function citiesShort(cities: { name: string; nights: number }[]): string {
+  if (!cities.length) return '';
+  const [first, ...rest] = cities;
+  return `${first.name} (${first.nights}N)${rest.length ? ` +${rest.length} more` : ''}`;
+}
+
+export function initials(name: string, email = ''): string {
+  const src = name.trim() || email.split('@')[0] || '?';
+  const parts = src.split(/[\s._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}

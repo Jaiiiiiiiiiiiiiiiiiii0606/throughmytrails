@@ -1,0 +1,37 @@
+{{!--
+  One-time sign-in code for travellers.
+  Variables: code, digits (array of single characters), minutes
+--}}
+{{#> layout}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="px" align="center" style="padding:40px 44px 8px 44px;">
+      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#6B4E35;">Your sign-in code</p>
+      <h1 class="h1" style="margin:0 0 14px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:34px; line-height:38px; font-weight:600; color:#2E2219;">Almost there, <span style="font-style:italic; color:#8A6440;">traveller.</span></h1>
+      <p style="margin:0 0 24px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:16px; line-height:26px; color:#4A3A2C;">
+        Enter this code on the Through My Trails website to sign in.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" class="px" style="padding:0 44px 10px 44px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          {{#each digits}}
+          <td align="center" valign="middle" width="46" height="58" style="width:46px; height:58px; background-color:#F1E7D7; border:1px solid #D2C0A3; border-radius:12px; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:34px; font-weight:600; color:#2E2219;">{{this}}</td>
+          {{#unless @last}}<td width="8" style="width:8px; font-size:0; line-height:0;">&nbsp;</td>{{/unless}}
+          {{/each}}
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td class="px" align="center" style="padding:18px 44px 40px 44px;">
+      <p style="margin:0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:14px; line-height:22px; color:#6B4E35;">
+        The code expires in {{minutes}} minutes and can only be used once.<br>
+        Never share it: our team will never ask you for it.
+      </p>
+    </td>
+  </tr>
+</table>
+{{/layout}}

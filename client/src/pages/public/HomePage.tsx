@@ -12,6 +12,7 @@ import { SampleItinerary } from '../../components/public/SampleItinerary';
 import { Services } from '../../components/public/Services';
 import { Trips } from '../../components/public/Trips';
 import { ZoomStatement } from '../../components/public/ZoomStatement';
+import { ExploreTeaser } from '../../components/traveller/ExploreTeaser';
 import { useReveal } from '../../hooks/useReveal';
 import '../../theme/site.css';
 
@@ -27,10 +28,11 @@ export default function HomePage() {
   return (
     <div className="site" ref={root}>
       <a className="skip-link" href="#contact">Skip to the enquiry form</a>
-      <Navbar whatsapp={contact.whatsapp} />
+      <Navbar />
       <main>
         <Hero heroImage={images.hero} logoImage={images.logo} whatsapp={contact.whatsapp} instagram={contact.instagram} />
         <Marquee />
+        <ExploreTeaser companions={content.companions} />
         <About image={images.about} />
         <Services services={services} />
         <Trips trips={tripTypes} whatsapp={contact.whatsapp} onPlan={onPlan} />

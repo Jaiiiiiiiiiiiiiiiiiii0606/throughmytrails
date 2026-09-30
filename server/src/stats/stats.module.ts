@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EnquiriesModule } from '../enquiries/enquiries.module';
 import { SiteContentModule } from '../site-content/site-content.module';
+import { UsersModule } from '../users/users.module';
 import { StatsService } from './stats.service';
 
 @ApiTags('admin')
@@ -19,7 +20,7 @@ export class StatsController {
 }
 
 @Module({
-  imports: [EnquiriesModule, SiteContentModule],
+  imports: [EnquiriesModule, SiteContentModule, UsersModule],
   controllers: [StatsController],
   providers: [StatsService],
 })

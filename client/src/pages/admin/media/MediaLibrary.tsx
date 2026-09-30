@@ -6,8 +6,17 @@ import type { MediaItem } from '../../../api/types';
 import { CheckIcon, CopyIcon, TrashIcon, UploadIcon } from '../../../components/admin/AdminIcons';
 import { ConfirmDialog } from '../../../components/admin/Overlay';
 import { useToast } from '../../../components/admin/Toast';
-import { ACCEPTED_IMAGE_TYPES, MAX_UPLOAD_MB } from '../../../lib/constants';
+import {
+  ACCEPTED_AUDIO_TYPES,
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPTED_VIDEO_TYPES,
+  MAX_AUDIO_MB,
+  MAX_UPLOAD_MB,
+  MAX_VIDEO_MB,
+  MediaKind,
+} from '../../../lib/constants';
 import { formatBytes, formatDate } from '../../../lib/format';
+import { MediaThumb } from './MediaThumb';
 import { slotLabel } from './slots';
 
 interface QueueItem {
@@ -19,11 +28,23 @@ interface QueueItem {
   error?: string;
 }
 
-function validate(file: File): string | null {
-  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) return 'Only JPG, PNG and WebP images are allowed.';
-  if (file.size > MAX_UPLOAD_MB * 1024 * 1024) return `Larger than ${MAX_UPLOAD_MB} MB.`;
+function kindOf(file: File): MediaKind | null {
+  if (ACCEPTED_IMAGE_TYPES.includes(file.type)) return 'image';
+  if (ACCEPTED_VIDEO_TYPES.includes(file.type)) return 'video';
+  if (ACCEPTED_AUDIO_TYPES.includes(file.type)) return 'audio';
   return null;
 }
+
+const LIMIT_MB: Record<MediaKind, number> = { image: MAX_UPLOAD_MB, video: MAX_VIDEO_MB, audio: MAX_AUDIO_MB };
+
+function validate(file: File): string | null {
+  const kind = kindOf(file);
+  if (!kind) return 'Use JPG/PNG/WebP photos, MP4/WebM clips, or MP3/M4A/OGG/WAV sounds.';
+  if (file.size > LIMIT_MB[kind] * 1024 * 1024) return `Larger than ${LIMIT_MB[kind]} MB.`;
+  return null;
+}
+
+const ACCEPT = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES, ...ACCEPTED_AUDIO_TYPES, '.m4a', '.mp3'].join(',');
 
 export function Uploader() {
   const [over, setOver] = useState(false);
@@ -62,7 +83,7 @@ export function Uploader() {
       ),
     ).then(() => {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] });
-      if (valid.length) toast(`${valid.length} ${valid.length === 1 ? 'image' : 'images'} processed.`);
+      if (valid.length) toast(`${valid.length} ${valid.length === 1 ? 'file' : 'files'} processed.`);
     });
   };
 
@@ -86,8 +107,10 @@ export function Uploader() {
 
   return (
     <section className="card" aria-labelledby="up-title" style={{ marginBottom: 18 }}>
-      <h2 id="up-title">Upload images</h2>
-      <p className="card-sub">JPG, PNG or WebP · up to {MAX_UPLOAD_MB} MB each · add several at once.</p>
+      <h2 id="up-title">Upload photos, clips and sounds</h2>
+      <p className="card-sub">
+        Photos: JPG, PNG or WebP up to {MAX_UPLOAD_MB} MB · Hover clips: MP4 or WebM up to {MAX_VIDEO_MB} MB (5–20 seconds, no text, works best) · Ambient sounds: MP3, M4A, OGG or WAV up to {MAX_AUDIO_MB} MB.
+      </p>
       <div
         className={`dropzone ${over ? 'over' : ''}`}
         role="button"
@@ -103,12 +126,12 @@ export function Uploader() {
         onDrop={onDrop}
       >
         <UploadIcon size={30} />
-        <span className="serif">Drop photos here</span>
+        <span className="serif">Drop files here</span>
         <span className="help">or click to choose files</span>
         <input
           ref={input}
           type="file"
-          accept={ACCEPTED_IMAGE_TYPES.join(',')}
+          accept={ACCEPT}
           multiple
           hidden
           onChange={(e) => {
@@ -123,7 +146,7 @@ export function Uploader() {
           <div className="uploads" aria-live="polite">
             {queue.map((q) => (
               <div className="upload-item" key={q.key}>
-                <img src={q.preview} alt="" />
+                {kindOf(q.file) === 'image' ? <img src={q.preview} alt="" /> : <MediaThumb url={q.preview} kind={kindOf(q.file) ?? 'audio'} name={q.file.name} />}
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={q.file.name}>{q.file.name}</span>
                 {q.state === 'error' ? (
                   <span className="field-err">{q.error}</span>
@@ -178,7 +201,7 @@ function MediaCard({ m, onDelete }: { m: MediaItem; onDelete: (m: MediaItem) => 
   return (
     <article className="media-card">
       <div className="thumb">
-        <img src={assetUrl(m.url)} alt={m.alt} loading="lazy" />
+        <MediaThumb url={m.url} kind={m.kind ?? 'image'} alt={m.alt} name={m.originalName} />
         {m.usedIn.length > 0 && (
           <div className="used">
             {m.usedIn.map((s) => <span key={s}>{slotLabel(s)}</span>)}
@@ -196,7 +219,7 @@ function MediaCard({ m, onDelete }: { m: MediaItem; onDelete: (m: MediaItem) => 
           <input
             id={`alt-${m.id}`}
             className="input"
-            placeholder="Describe the image (alt text)"
+            placeholder={m.kind === 'image' ? 'Describe the image (alt text)' : 'Short description'}
             value={alt}
             maxLength={200}
             onChange={(e) => setAlt(e.target.value)}
@@ -217,8 +240,17 @@ function MediaCard({ m, onDelete }: { m: MediaItem; onDelete: (m: MediaItem) => 
   );
 }
 
+const FILTERS: { id: 'all' | MediaKind; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'image', label: 'Photos' },
+  { id: 'video', label: 'Clips' },
+  { id: 'audio', label: 'Sounds' },
+];
+
 export function MediaLibrary() {
-  const { data, isLoading } = useMedia();
+  const { data: all, isLoading } = useMedia();
+  const [filter, setFilter] = useState<'all' | MediaKind>('all');
+  const data = all?.filter((m) => filter === 'all' || (m.kind ?? 'image') === filter);
   const del = useDeleteMedia();
   const toast = useToast();
   const [pending, setPending] = useState<MediaItem | null>(null);
@@ -227,10 +259,10 @@ export function MediaLibrary() {
     if (!pending) return;
     try {
       await del.mutateAsync({ id: pending.id, force: pending.usedIn.length > 0 });
-      toast('Image deleted.');
+      toast('File deleted.');
       setPending(null);
     } catch (e) {
-      toast(e instanceof ApiError ? e.message : 'Could not delete the image.', 'error');
+      toast(e instanceof ApiError ? e.message : 'Could not delete the file.', 'error');
     }
   };
 
@@ -239,14 +271,22 @@ export function MediaLibrary() {
       <Uploader />
       <section aria-labelledby="lib-title">
         <h2 id="lib-title" className="serif" style={{ fontSize: 28, margin: '8px 0 14px', fontWeight: 600 }}>
-          Library {data ? <span className="help" style={{ fontFamily: 'var(--font-sans)', fontSize: 15 }}>· {data.length} images</span> : null}
+          Library {all ? <span className="help" style={{ fontFamily: 'var(--font-sans)', fontSize: 15 }}>· {all.length} files</span> : null}
         </h2>
+        <div className="kind-filter" role="group" aria-label="Show">
+          {FILTERS.map((f) => (
+            <button key={f.id} type="button" className={`chip-sm ${filter === f.id ? 'on' : ''}`} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              {f.label}
+              {all ? ` · ${f.id === 'all' ? all.length : all.filter((m) => (m.kind ?? 'image') === f.id).length}` : ''}
+            </button>
+          ))}
+        </div>
         {isLoading ? (
           <div className="media-grid">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 280 }} />)}</div>
         ) : !data?.length ? (
           <div className="card empty">
-            <span className="script">An empty album</span>
-            Upload photos above, then assign them to the website in “Image slots”.
+            <span className="script">{filter === 'all' ? 'An empty album' : 'Nothing here yet'}</span>
+            Upload files above, then use them in “Image slots”, destinations and packages.
           </div>
         ) : (
           <div className="media-grid">
@@ -257,10 +297,10 @@ export function MediaLibrary() {
 
       <ConfirmDialog
         open={!!pending}
-        title="Delete this image?"
+        title="Delete this file?"
         message={
           pending?.usedIn.length
-            ? `This image is currently shown on the website (${pending.usedIn.map((s) => slotLabel(s)).join(', ')}). Deleting it resets those spots to the built-in artwork. The file is removed permanently.`
+            ? `This file is currently used on the website (${pending.usedIn.map((s) => slotLabel(s)).join(', ')}). Deleting it removes it from those places (photo slots go back to the built-in artwork). The file is removed permanently.`
             : 'The file will be removed from the server permanently.'
         }
         confirmLabel={pending?.usedIn.length ? 'Delete anyway' : 'Delete'}
