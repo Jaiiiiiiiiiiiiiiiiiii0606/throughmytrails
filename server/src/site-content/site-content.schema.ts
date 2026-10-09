@@ -57,6 +57,27 @@ export class Contact {
 }
 export const ContactSchema = SchemaFactory.createForClass(Contact);
 
+@Schema({ _id: false })
+export class TeamMember {
+  /** Stable slug, e.g. "nachiket-r-patil". Their photo lives in slot `team:<key>`. */
+  @Prop({ required: true })
+  key: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  /** Position shown under the name, e.g. "Founder". */
+  @Prop({ default: '' })
+  role: string;
+
+  @Prop({ default: '' })
+  bio: string;
+
+  @Prop({ default: true })
+  visible: boolean;
+}
+export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);
+
 export type SiteContentDocument = HydratedDocument<SiteContent>;
 
 /** Single document (key = "main") holding everything the public site renders dynamically. */
@@ -78,6 +99,10 @@ export class SiteContent {
 
   @Prop({ type: ContactSchema, default: () => ({}) })
   contact: Contact;
+
+  /** Array order is display order; the first visible member is featured. Unset until first edited, so older documents fall back to the defaults. */
+  @Prop({ type: [TeamMemberSchema], default: undefined })
+  team?: TeamMember[];
 }
 
 export const SiteContentSchema = SchemaFactory.createForClass(SiteContent);

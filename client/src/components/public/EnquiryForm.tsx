@@ -7,6 +7,7 @@ import { useSubmitEnquiry } from '../../api/public';
 import type { PublicTripType } from '../../api/types';
 import { BUDGETS, BUDGET_LABELS, OTHER_TRIP } from '../../lib/constants';
 import { DEFAULT_WA_MESSAGE, firstName, waLink } from '../../lib/format';
+import { scrollToElement } from '../../lib/smoothScroll';
 import { AlertIcon, ChatIcon, PlaneIcon } from '../illustrations/Icons';
 
 const optionalText = (max: number) => z.string().trim().max(max, `Please keep this under ${max} characters.`).optional();
@@ -85,7 +86,7 @@ export function EnquiryForm({ trips, whatsapp, preset }: Props) {
     setSource('trip-card');
     const el = formRef.current;
     if (el) {
-      el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      scrollToElement(el);
       window.setTimeout(() => setFocus('name'), 600);
     }
   }, [preset, setValue, setFocus]);
@@ -148,7 +149,7 @@ export function EnquiryForm({ trips, whatsapp, preset }: Props) {
         <p>
           We've emailed you a confirmation. A real travel planner will get in touch within 24 hours to start planning your trip.
         </p>
-        <p className="script sign">Let's turn your travel dreams into plans ♥</p>
+        <p className="script sign">Let's turn your travel dreams into plans.</p>
         <button type="button" className="btn line sm" onClick={() => setDone(null)}>
           Send another enquiry
         </button>

@@ -40,11 +40,13 @@ export function Trips({ trips, whatsapp, onPlan }: Props) {
           <div className="track" ref={track}>
             {trips.map((t) => (
               <article className="style-card" key={t.key}>
-                {t.image ? (
-                  <img className="art" src={assetUrl(t.image.url)} alt={t.image.alt || ''} loading="lazy" width={360} height={240} />
-                ) : (
-                  <TripIllustration kind={t.illustration} className="art" />
-                )}
+                <div className="art-wrap">
+                  {t.image ? (
+                    <img className="art" src={assetUrl(t.image.url)} alt={t.image.alt || ''} loading="lazy" width={360} height={240} />
+                  ) : (
+                    <TripIllustration kind={t.illustration} className="art" />
+                  )}
+                </div>
                 <div className="body">
                   <h3>{t.title}</h3>
                   <p>{t.subtitle}</p>

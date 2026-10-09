@@ -29,10 +29,22 @@ export interface Service {
   description: string;
 }
 
+export interface TeamMember {
+  key: string;
+  name: string;
+  role: string;
+  bio: string;
+}
+
+export interface PublicTeamMember extends TeamMember {
+  image: ImageRef | null;
+}
+
 export interface PublicSiteContent {
   images: { hero: ImageRef | null; about: ImageRef | null; logo: ImageRef | null };
   tripTypes: PublicTripType[];
   services: Service[];
+  team: PublicTeamMember[];
   contact: Contact;
 }
 
@@ -162,11 +174,16 @@ export interface AdminTripType {
   visible: boolean;
 }
 
+export interface AdminTeamMember extends TeamMember {
+  visible: boolean;
+}
+
 export interface AdminSiteContent {
   slots: Record<string, SlotImage>;
   slotNames: string[];
   tripTypes: AdminTripType[];
   services: Service[];
+  team: AdminTeamMember[];
   contact: Contact;
 }
 
@@ -174,6 +191,7 @@ export interface SiteContentUpdate {
   slots?: Record<string, string | null>;
   tripTypes?: AdminTripType[];
   services?: Service[];
+  team?: AdminTeamMember[];
   contact?: Contact;
 }
 
