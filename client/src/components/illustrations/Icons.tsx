@@ -34,6 +34,12 @@ export const ArrowRight = ({ size = 16, ...p }: P) => (
 export const ArrowDown = ({ size = 18, ...p }: P) => (
   <svg {...base(size, 2)} {...p}><path d="M12 5 V19 M6 13 L12 19 L18 13" /></svg>
 );
+export const CheckIcon = ({ size = 18, ...p }: P) => (
+  <svg {...base(size, 2.2)} {...p}><path d="M5 12.5 L10 17.5 L19 7" /></svg>
+);
+export const ArrowUp = ({ size = 18, ...p }: P) => (
+  <svg {...base(size, 2)} {...p}><path d="M12 19 V5 M6 11 L12 5 L18 11" /></svg>
+);
 export const PlaneIcon = ({ size = 40, ...p }: P) => (
   <svg width={size} height={size} viewBox="-16 -16 32 32" aria-hidden="true" focusable="false" {...p}>
     <path d="M12 0 L4 -2 L-2 -11 L-5 -11 L-2 -2 L-8 -2 L-11 -6 L-13 -6 L-11 0 L-13 6 L-11 6 L-8 2 L-2 2 L-5 11 L-2 11 L4 2 Z" fill="currentColor" />

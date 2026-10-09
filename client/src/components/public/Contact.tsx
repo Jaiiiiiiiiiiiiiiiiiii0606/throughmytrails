@@ -33,8 +33,8 @@ export function Contact({ contact, trips, preset }: Props) {
       <div className="wrap split contact-grid">
         <div>
           <p className="caps rv" style={{ margin: '0 0 10px' }}>Let's connect</p>
-          <h2 className="script rv d1 contact-script" style={{ fontWeight: 400 }}>
-            Let's turn your travel dreams into plans <span className="heart" aria-hidden="true">♥</span>
+          <h2 className="h2 rv d1 contact-title">
+            Let's turn your travel dreams into <em>plans.</em>
           </h2>
           <p className="lead rv d2" style={{ maxWidth: 460, marginBottom: 30 }}>
             Send an enquiry, or say hello on whichever app you like. Real replies from a real travel planner.

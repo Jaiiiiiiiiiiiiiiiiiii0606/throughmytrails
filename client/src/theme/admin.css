@@ -38,13 +38,16 @@
   color: var(--ink);
 }
 .side-brand img {
-  width: 44px;
-  height: 39px;
+  width: 64px;
+  height: 69px;
   object-fit: contain;
+  flex: none;
 }
-.side-brand .script {
-  font-size: 25px;
-  line-height: 1.1;
+.side-brand .name {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.15;
   display: block;
   white-space: nowrap;
 }
@@ -625,7 +628,7 @@ table.data .nowrap {
   color: var(--text-2);
 }
 .empty .script {
-  font-size: 40px;
+  font-size: 30px;
   color: var(--gold-text);
   display: block;
   margin-bottom: 6px;
@@ -1102,6 +1105,65 @@ table.data .nowrap {
   object-fit: cover;
   display: block;
 }
+.editor-row .mini.portrait {
+  width: 112px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sand);
+}
+/* Team photo: the circle itself opens the picker. */
+.editor-row.team-row {
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+}
+.team-row .stack .btn {
+  white-space: nowrap;
+}
+.portrait-btn {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.portrait-btn:focus-visible {
+  border-radius: 50%;
+}
+.portrait-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(46, 34, 25, 0.6);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.portrait-btn:hover .portrait-overlay,
+.portrait-btn:focus-visible .portrait-overlay {
+  opacity: 1;
+}
+.mini .initials,
+.initials-fallback {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 600;
+  color: var(--brown);
+}
+.initials-fallback {
+  font-size: 18px;
+  color: var(--label);
+}
 .editor-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1225,7 +1287,7 @@ table.data .nowrap {
 }
 .login-card .script {
   text-align: center;
-  font-size: 30px;
+  font-size: 22px;
   color: var(--gold-text);
   margin: -6px 0 6px;
 }
@@ -1302,13 +1364,18 @@ table.data .nowrap {
   .topbar .side-brand {
     padding: 0;
   }
-  .topbar .side-brand .script {
-    font-size: 24px;
+  .topbar .side-brand img {
+    width: 44px;
+    height: 48px;
+  }
+  .topbar .side-brand .name {
+    font-size: 17px;
   }
   .main {
     padding: 24px 16px 60px;
   }
-  .editor-row {
+  .editor-row,
+  .editor-row.team-row {
     grid-template-columns: minmax(0, 1fr);
   }
   .editor-side {
