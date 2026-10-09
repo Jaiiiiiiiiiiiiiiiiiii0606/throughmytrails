@@ -6,9 +6,9 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
     <td class="px" style="padding:36px 44px 6px 44px;">
-      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#6B4E35;">New enquiry · {{enquiry.referenceId}}</p>
-      <h1 class="h1" style="margin:0 0 8px 0; font-family:'Cormorant Garamond', Georgia, 'Times New Roman', serif; font-size:34px; line-height:38px; font-weight:600; color:#2E2219;">{{enquiry.name}} <span style="font-style:italic; color:#8A6440;">→ {{enquiry.destination}}</span></h1>
-      <p style="margin:0 0 6px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:14px; line-height:22px; color:#4A3A2C;">Received {{receivedAt}} via the {{enquiry.sourceLabel}}.</p>
+      <p style="margin:0 0 6px 0; font-family:'Inter', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:500; letter-spacing:3px; text-transform:uppercase; color:#6B4E35;">New enquiry · {{enquiry.referenceId}}</p>
+      <h1 class="h1" style="margin:0 0 8px 0; font-family:'Playfair Display', Georgia, 'Times New Roman', serif; font-size:34px; line-height:38px; font-weight:600; color:#2E2219;">{{enquiry.name}} <span style="font-style:italic; color:#8A6440;">→ {{enquiry.destination}}</span></h1>
+      <p style="margin:0 0 6px 0; font-family:'Inter', 'Helvetica Neue', Arial, sans-serif; font-size:14px; line-height:22px; color:#4A3A2C;">Received {{receivedAt}} via the {{enquiry.sourceLabel}}.</p>
     </td>
   </tr>
   <tr>
@@ -26,8 +26,8 @@
               {{> summary-row label="Budget" value=enquiry.budget}}
               {{> summary-row label="Trip type" value=enquiry.tripType}}
               <tr>
-                <td width="38%" valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">Message</td>
-                <td valign="top" style="padding:9px 0; font-family:'Jost', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:22px; color:#2E2219; white-space:pre-line;">{{enquiry.message}}</td>
+                <td width="38%" valign="top" style="padding:9px 0; font-family:'Inter', 'Helvetica Neue', Arial, sans-serif; font-size:11px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:#6B4E35;">Message</td>
+                <td valign="top" style="padding:9px 0; font-family:'Inter', 'Helvetica Neue', Arial, sans-serif; font-size:15px; line-height:22px; color:#2E2219; white-space:pre-line;">{{enquiry.message}}</td>
               </tr>
             </table>
           </td>

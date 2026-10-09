@@ -1,4 +1,4 @@
-import { Contact, Service, TripType } from './site-content.schema';
+import { Contact, Service, TeamMember, TripType } from './site-content.schema';
 
 export const DEFAULT_TRIP_TYPES: TripType[] = [
   {
@@ -64,3 +64,13 @@ export const DEFAULT_CONTACT: Contact = {
   email: 'throughmytrails@gmail.com',
   instagram: 'through.my.trails',
 };
+
+export const DEFAULT_TEAM: TeamMember[] = [
+  {
+    key: 'nachiket-r-patil',
+    name: 'Nachiket R. Patil',
+    role: 'Founder',
+    bio: 'Personally plans every trip, from the first message to the final booking.',
+    visible: true,
+  },
+];

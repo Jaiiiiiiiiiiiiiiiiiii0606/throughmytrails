@@ -212,10 +212,11 @@ The admin refresh token is an httpOnly cookie. In production it is sent `SameSit
 ## Assumptions
 
 1. **bcryptjs** (pure-JS bcrypt, same algorithm and hash format) is used instead of the native `bcrypt` package, to avoid native build steps on hosts.
-2. The hero image slot shows as a round photo inside the rotating ring. The `logo` slot replaces the full logo in the hero (when no hero photo is set) and the footer. The navbar and admin sidebar keep the supplied emblem.
+2. The hero image slot shows as a round photo inside the rotating ring. The `logo` slot is the single brand mark used everywhere on the public site: navbar, hero (when no hero photo is set), sample itinerary card, intro animation and footer.
 3. A trip card's image is its `trip:<key>` slot, so there is one source of truth whether it's set from **Image slots** or **Trip cards**. A trip card's key can't be changed after creation, so past enquiries stay linked. Removing a trip type keeps its enquiries (their trip type is shown by key).
-4. The hero and navbar CTAs still open WhatsApp, as in the original. The contact form is the new primary enquiry path, with "or chat on WhatsApp" pre-filled from whatever has been typed.
-5. Reference numbers restart each calendar year (India time): `TMT-2026-0001`, … `TMT-2027-0001`.
-6. Honeypot submissions get a normal-looking success response but are not stored or emailed.
-7. Only one admin role exists. Additional admins can be added by inserting into `admin_users` (the seed shows how).
-8. The admin panel is beige-only (no dark theme), matching the brand.
+4. **Team** (Media & content → Team) lists the people in “Meet the team”, the last section of the page. The first visible person is featured with a large card; the rest appear as small cards. Each person's photo is their `team:<key>` slot, and the image picker can upload a new photo directly.
+5. The hero and navbar CTAs still open WhatsApp, as in the original. The contact form is the new primary enquiry path, with "or chat on WhatsApp" pre-filled from whatever has been typed.
+6. Reference numbers restart each calendar year (India time): `TMT-2026-0001`, … `TMT-2027-0001`.
+7. Honeypot submissions get a normal-looking success response but are not stored or emailed.
+8. Only one admin role exists. Additional admins can be added by inserting into `admin_users` (the seed shows how).
+9. The admin panel is beige-only (no dark theme), matching the brand.

@@ -63,6 +63,23 @@ export class ContactDto {
   instagram: string;
 }
 
+export class TeamMemberDto {
+  @Matches(/^[a-z0-9][a-z0-9-]{0,39}$/, { message: 'Team member keys may contain lowercase letters, numbers and dashes only.' })
+  key: string;
+
+  @CleanString() @IsString() @IsNotEmpty() @MaxLength(60)
+  name: string;
+
+  @CleanString() @IsString() @MaxLength(60)
+  role: string;
+
+  @CleanString() @IsString() @MaxLength(200)
+  bio: string;
+
+  @IsBoolean()
+  visible: boolean;
+}
+
 export class UpdateSiteContentDto {
   @ApiPropertyOptional({ description: 'Slot name → media id, or null to clear.', example: { hero: '66f…', 'trip:mountains': null } })
   @IsOptional()
@@ -84,6 +101,14 @@ export class UpdateSiteContentDto {
   @ValidateNested({ each: true })
   @Type(() => ServiceDto)
   services?: ServiceDto[];
+
+  @ApiPropertyOptional({ type: [TeamMemberDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(24)
+  @ValidateNested({ each: true })
+  @Type(() => TeamMemberDto)
+  team?: TeamMemberDto[];
 
   @ApiPropertyOptional({ type: ContactDto })
   @IsOptional()

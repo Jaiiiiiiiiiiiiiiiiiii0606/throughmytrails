@@ -17,6 +17,9 @@ export const DEFAULT_SITE_CONTENT: PublicSiteContent = {
     { icon: 'map', title: 'Custom itineraries', description: 'A day-wise plan of places, food and experiences, paced the way you like to travel.' },
     { icon: 'wallet', title: 'Budget planning', description: 'A clear cost breakdown up front, and smart swaps to make your money go further.' },
   ],
+  team: [
+    { key: 'nachiket-r-patil', name: 'Nachiket R. Patil', role: 'Founder', bio: 'Personally plans every trip, from the first message to the final booking.', image: null },
+  ],
   contact: {
     phone: '+91 74892 67159',
     whatsapp: '917489267159',

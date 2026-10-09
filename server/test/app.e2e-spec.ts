@@ -128,4 +128,50 @@ describe('Through My Trails API (e2e)', () => {
       await request(http).post('/api/auth/logout').expect(200);
     });
   });
+
+  describe('team members', () => {
+    it('serves the founder by default, then saves, orders and hides team members', async () => {
+      const before = await request(http).get('/api/public/site-content').expect(200);
+      expect(before.body.team).toEqual([expect.objectContaining({ key: 'nachiket-r-patil', name: 'Nachiket R. Patil', role: 'Founder', image: null })]);
+
+      const login = await request(http).post('/api/auth/login').send({ email: 'admin@test.local', password: 'Test-password-123' }).expect(200);
+      const auth = { Authorization: `Bearer ${login.body.accessToken}` };
+
+      const team = [
+        { key: 'nachiket-r-patil', name: 'Nachiket R. Patil', role: 'Founder', bio: '', visible: true },
+        { key: 'priya', name: 'Priya <b>Deshmukh</b>', role: 'Travel Consultant', bio: 'Beaches expert.', visible: true },
+        { key: 'hidden', name: 'Not Yet', role: 'Intern', bio: '', visible: false },
+      ];
+      const saved = await request(http).put('/api/admin/site-content').set(auth).send({ team }).expect(200);
+      expect(saved.body.slotNames).toEqual(expect.arrayContaining(['team:nachiket-r-patil', 'team:priya', 'team:hidden']));
+
+      const after = await request(http).get('/api/public/site-content').expect(200);
+      expect(after.body.team.map((m: { key: string }) => m.key)).toEqual(['nachiket-r-patil', 'priya']);
+      expect(after.body.team[1].name).not.toContain('<b>');
+
+      await request(http)
+        .put('/api/admin/site-content')
+        .set(auth)
+        .send({ team: [team[0], { ...team[1], key: 'nachiket-r-patil' }] })
+        .expect(400);
+      await request(http).put('/api/admin/site-content').set(auth).send({ slots: { 'team:nobody': null } }).expect(400);
+
+      // A new person and their photo are saved together in one request (photo chosen before the first save).
+      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+      const uploaded = await request(http).post('/api/admin/media').set(auth).attach('files', png, 'arjun.png').expect(201);
+      const mediaId = uploaded.body[0].id;
+      await request(http)
+        .put('/api/admin/site-content')
+        .set(auth)
+        .send({ team: [...team, { key: 'arjun-kale', name: 'Arjun Kale', role: 'Operations Lead', bio: '', visible: true }], slots: { 'team:arjun-kale': mediaId } })
+        .expect(200);
+      const withPhoto = await request(http).get('/api/public/site-content').expect(200);
+      expect(withPhoto.body.team.find((m: { key: string }) => m.key === 'arjun-kale').image).toMatchObject({ url: uploaded.body[0].url });
+
+      // Removing the person also clears their photo slot.
+      await request(http).put('/api/admin/site-content').set(auth).send({ team }).expect(200);
+      const media = await request(http).get('/api/admin/media').set(auth).expect(200);
+      expect(media.body.find((m: { id: string }) => m.id === mediaId).usedIn).toEqual([]);
+    });
+  });
 });
