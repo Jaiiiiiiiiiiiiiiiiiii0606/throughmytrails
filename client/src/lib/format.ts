@@ -56,3 +56,12 @@ export function slugify(s: string): string {
 export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || 'traveller';
 }
+
+/** "Nachiket R. Patil" → "NP": first and last initials, for photo placeholders. */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '';
+  const first = parts[0][0];
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}

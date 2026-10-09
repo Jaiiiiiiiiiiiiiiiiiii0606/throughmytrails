@@ -4,11 +4,12 @@ import { ApiError, assetUrl } from '../../../api/client';
 import { useToast } from '../../../components/admin/Toast';
 import { TripIllustration } from '../../../components/illustrations/TripIllustration';
 import { MediaPicker } from './MediaPicker';
-import { TRIP_SLOT_PREFIX, slotHelp, slotLabel } from './slots';
+import { TEAM_SLOT_PREFIX, TRIP_SLOT_PREFIX, slotHelp, slotLabel } from './slots';
 
 function Fallback({ slot, illustration }: { slot: string; illustration?: string }) {
   if (slot === 'about') return <img src="/assets/card.jpg" alt="" />;
   if (slot === 'hero' || slot === 'logo') return <img className="contain" src="/assets/logo-full.png" alt="" />;
+  if (slot.startsWith(TEAM_SLOT_PREFIX)) return <span className="initials-fallback" aria-hidden="true">Initials</span>;
   return <TripIllustration kind={(illustration ?? 'mountains') as never} />;
 }
 
@@ -19,12 +20,13 @@ export function SlotsPanel() {
   const [picking, setPicking] = useState<string | null>(null);
 
   const tripTitles = useMemo(() => new Map((data?.tripTypes ?? []).map((t) => [t.key, t.title])), [data]);
+  const teamNames = useMemo(() => new Map((data?.team ?? []).map((m) => [m.key, m.name])), [data]);
   const illustrations = useMemo(() => new Map((data?.tripTypes ?? []).map((t) => [t.key, t.illustration])), [data]);
 
   const assign = async (slot: string, mediaId: string | null) => {
     try {
       await update.mutateAsync({ slots: { [slot]: mediaId } });
-      toast(mediaId ? `${slotLabel(slot, tripTitles)} updated. It's live on the site.` : `${slotLabel(slot, tripTitles)} reset to the built-in artwork.`);
+      toast(mediaId ? `${slotLabel(slot, tripTitles, teamNames)} updated. It's live on the site.` : `${slotLabel(slot, tripTitles, teamNames)} reset to the built-in artwork.`);
       setPicking(null);
     } catch (e) {
       toast(e instanceof ApiError ? e.message : 'Could not update the slot.', 'error');
@@ -49,7 +51,7 @@ export function SlotsPanel() {
                 <span className="tag">{img ? 'Custom image' : 'Built-in'}</span>
               </div>
               <div>
-                <h3 id={`slot-${slot}`}>{slotLabel(slot, tripTitles)}</h3>
+                <h3 id={`slot-${slot}`}>{slotLabel(slot, tripTitles, teamNames)}</h3>
                 <p className="help" style={{ margin: '4px 0 0' }}>{slotHelp(slot)}</p>
               </div>
               <div className="btns">
@@ -68,7 +70,7 @@ export function SlotsPanel() {
       </div>
       <MediaPicker
         open={!!picking}
-        title={picking ? `Choose: ${slotLabel(picking, tripTitles)}` : ''}
+        title={picking ? `Choose: ${slotLabel(picking, tripTitles, teamNames)}` : ''}
         current={picking ? data.slots[picking]?.mediaId : undefined}
         onClose={() => setPicking(null)}
         onPick={(id) => picking && assign(picking, id)}

@@ -12,7 +12,7 @@ const INK = '#2E2219';
 const BROWN = '#5A4330';
 const MUTED = '#6B4E35';
 const GRID = '#E3D6C1';
-const axisTick = { fill: MUTED, fontSize: 12, fontFamily: 'Jost, sans-serif' };
+const axisTick = { fill: MUTED, fontSize: 12, fontFamily: 'Inter, sans-serif' };
 
 function Tip({ active, payload, label, fmt }: { active?: boolean; payload?: { value: number }[]; label?: string; fmt?: (l: string) => string }) {
   if (!active || !payload?.length) return null;
