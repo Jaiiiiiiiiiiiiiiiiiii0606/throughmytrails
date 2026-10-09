@@ -1,3 +1,6 @@
+import type { ImageRef } from '../../api/types';
+import { Logo } from './Logo';
+
 const DAYS = [
   'Arrive, check in, sunset viewpoint and a local dinner',
   'Guided trail in the morning, café stop, old-town walk',
@@ -12,7 +15,7 @@ const BARS = [
   { label: 'Food & travel', width: 30, delay: 0.75, alt: true },
 ];
 
-export function SampleItinerary() {
+export function SampleItinerary({ logo }: { logo: ImageRef | null }) {
   return (
     <section className="receive" aria-labelledby="receive-title">
       <div className="wrap split">
@@ -24,12 +27,12 @@ export function SampleItinerary() {
           <p className="lead rv d2" style={{ marginBottom: 26 }}>
             Every trip comes as a clear, day-by-day itinerary with where to stay, what to do and what it will cost, all in one place.
           </p>
-          <p className="script rv d3 tagline">Explore · Experience · Everywhere</p>
+          <p className="caps rv d3 tagline">Explore <span>·</span> Experience <span>·</span> Everywhere</p>
         </div>
         <div className="itin rv r">
           <div className="itin-head">
             <span className="caps" style={{ fontSize: 12 }}>Sample itinerary</span>
-            <img src="/assets/emblem.png" alt="" width={40} height={35} loading="lazy" />
+            <Logo image={logo} alt="" width={56} height={60} loading="lazy" />
           </div>
           <h3>[Destination] · 4 days</h3>
           {DAYS.map((d, i) => (

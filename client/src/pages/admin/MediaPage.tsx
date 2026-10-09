@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { MediaLibrary } from './media/MediaLibrary';
 import { ServicesEditor } from './media/ServicesEditor';
 import { SlotsPanel } from './media/SlotsPanel';
+import { TeamEditor } from './media/TeamEditor';
 import { TripTypesEditor } from './media/TripTypesEditor';
 
 const TABS = [
@@ -11,6 +12,7 @@ const TABS = [
   { id: 'slots', label: 'Image slots', el: <SlotsPanel /> },
   { id: 'trips', label: 'Trip cards', el: <TripTypesEditor /> },
   { id: 'services', label: 'Services', el: <ServicesEditor /> },
+  { id: 'team', label: 'Team', el: <TeamEditor /> },
 ] as const;
 
 export default function MediaPage() {
@@ -37,7 +39,7 @@ export default function MediaPage() {
         <div>
           <span className="caps">Media & content</span>
           <h1>The look of <em>the trail.</em></h1>
-          <p className="sub">Upload photos, choose what appears where, and edit trip cards and services. Changes go live immediately.</p>
+          <p className="sub">Upload photos, choose what appears where, and edit trip cards, services and your team. Changes go live immediately.</p>
         </div>
       </div>
 

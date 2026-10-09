@@ -25,9 +25,9 @@
   --danger: #9a3b2a;
   --danger-soft: #f3dcd3;
 
-  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Jost', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-script: 'Allura', 'Snell Roundhand', 'Apple Chancery', cursive;
+  /* Professional pairing: a classic display serif for headings, a neutral sans for everything else. */
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --radius-card: 28px;
   --radius-field: 14px;
@@ -52,6 +52,8 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -77,9 +79,11 @@ a:hover {
 .serif {
   font-family: var(--font-serif);
 }
+/* Accent line: italic display serif (replaces the old handwriting font). */
 .script {
-  font-family: var(--font-script);
-  font-weight: 400;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
 }
 .caps {
   font-size: 13px;

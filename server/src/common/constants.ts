@@ -25,6 +25,7 @@ export type EnquirySource = (typeof ENQUIRY_SOURCES)[number];
 
 export const FIXED_SLOTS = ['hero', 'about', 'logo'] as const;
 export const TRIP_SLOT_PREFIX = 'trip:';
+export const TEAM_SLOT_PREFIX = 'team:';
 
 export const ILLUSTRATIONS = ['mountains', 'beaches', 'cities', 'backpacking', 'sea', 'scenic'] as const;
 export type Illustration = (typeof ILLUSTRATIONS)[number];

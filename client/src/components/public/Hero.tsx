@@ -3,7 +3,10 @@ import { assetUrl } from '../../api/client';
 import type { ImageRef } from '../../api/types';
 import { useParallax } from '../../hooks/useParallax';
 import { waLink } from '../../lib/format';
-import { ArrowDown, ChatIcon, PLANE_PATH } from '../illustrations/Icons';
+import { ArrowDown, ChatIcon, CheckIcon, PLANE_PATH } from '../illustrations/Icons';
+import { Logo } from './Logo';
+
+const TRUST = ['Tailor-made itineraries', 'Clear, upfront budgets', 'Real people, real replies'];
 
 interface Props {
   heroImage: ImageRef | null;
@@ -42,53 +45,55 @@ export function Hero({ heroImage, logoImage, whatsapp, instagram }: Props) {
         </g>
       </svg>
 
+      <div className="glow g1" aria-hidden="true" />
+      <div className="glow g2" aria-hidden="true" />
+
       <div className="wrap hero-grid" data-fade="1">
         <div className="hero-copy">
-          <p className="caps fade-up hero-kicker" style={{ animationDelay: '.1s' }}>
-            Travel planner · Flights · Hotels · Holidays
-          </p>
-          <p className="script fade-up hero-script" style={{ animationDelay: '.25s' }}>
-            Your next journey awaits
+          <p className="badge fade-up" style={{ animationDelay: '.1s' }}>
+            <span className="live" aria-hidden="true" />
+            Personal travel planning · Flights · Hotels · Holidays
           </p>
           <h1 className="hero-title">
-            <span className="word" style={{ animationDelay: '.4s' }}>Travel,</span>{' '}
-            <span className="word" style={{ animationDelay: '.5s' }}>planned</span>
-            <br />
-            <span className="word" style={{ animationDelay: '.6s' }}>around</span>{' '}
-            <em className="word" style={{ animationDelay: '.7s' }}>you.</em>
+            <span className="line"><span style={{ animationDelay: '.3s' }}>Travel, planned</span></span>
+            <span className="line"><span style={{ animationDelay: '.45s' }}>around <em>you.</em></span></span>
           </h1>
-          <p className="fade-up hero-sub" style={{ animationDelay: '.9s' }}>
+          <p className="fade-up hero-sub" style={{ animationDelay: '.75s' }}>
             Personalised itineraries, flight help, handpicked hotels and budget-friendly planning. You dream it, we map it, you just pack.
           </p>
-          <div className="fade-up hero-ctas" style={{ animationDelay: '1.05s' }}>
-            <a className="btn dark" href={waLink(whatsapp)} target="_blank" rel="noopener noreferrer">
+          <div className="fade-up hero-ctas" style={{ animationDelay: '.9s' }}>
+            <a className="btn dark" data-magnetic href={waLink(whatsapp)} target="_blank" rel="noopener noreferrer">
               <ChatIcon size={20} />
               Plan my trip on WhatsApp
             </a>
-            <a className="btn line" href={`https://www.instagram.com/${instagram}`} target="_blank" rel="noopener noreferrer">
+            <a className="btn line" data-magnetic href={`https://www.instagram.com/${instagram}`} target="_blank" rel="noopener noreferrer">
               Follow the trails
             </a>
           </div>
+          <ul className="trust fade-up" style={{ animationDelay: '1.05s' }}>
+            {TRUST.map((t) => (
+              <li key={t}><span className="tick"><CheckIcon size={13} /></span>{t}</li>
+            ))}
+          </ul>
         </div>
 
         <div className="hero-logo logo-in">
-          <svg className="spin ring" viewBox="0 0 480 480" aria-hidden="true">
-            <circle cx="240" cy="240" r="232" fill="none" stroke="#B08654" strokeWidth="1.2" strokeDasharray="2 9" />
-          </svg>
-          <svg className="spin rev ring" viewBox="0 0 480 480" aria-hidden="true">
-            <g transform="translate(240 8) rotate(180) scale(1.3)">
-              <path d={PLANE_PATH} fill="#6B4E35" />
-            </g>
-          </svg>
-          {heroImage ? (
-            <img className="photo-img" src={assetUrl(heroImage.url)} alt={heroImage.alt || 'Through My Trails'} />
-          ) : (
-            <img
-              className="logo-img"
-              src={logoImage ? assetUrl(logoImage.url) : '/assets/logo-full.png'}
-              alt={logoImage?.alt || 'Through My Trails — Explore, Experience, Everywhere'}
-            />
-          )}
+          <div className="hero-logo-inner" data-tilt="10">
+            <svg className="spin ring" viewBox="0 0 480 480" aria-hidden="true">
+              <circle cx="240" cy="240" r="232" fill="none" stroke="#B08654" strokeWidth="1.2" strokeDasharray="2 9" />
+            </svg>
+            <svg className="spin rev ring" viewBox="0 0 480 480" aria-hidden="true">
+              <g transform="translate(240 8) rotate(180) scale(1.3)">
+                <path d={PLANE_PATH} fill="#6B4E35" />
+              </g>
+            </svg>
+            <div className="halo" aria-hidden="true" />
+            {heroImage ? (
+              <img className="photo-img" src={assetUrl(heroImage.url)} alt={heroImage.alt || 'Through My Trails'} />
+            ) : (
+              <Logo className="logo-img" image={logoImage} />
+            )}
+          </div>
         </div>
       </div>
 

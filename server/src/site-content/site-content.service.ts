@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model, Types } from 'mongoose';
-import { FIXED_SLOTS, TRIP_SLOT_PREFIX } from '../common/constants';
+import { FIXED_SLOTS, TEAM_SLOT_PREFIX, TRIP_SLOT_PREFIX } from '../common/constants';
 import { Media, MediaDocument } from '../media/media.schema';
-import { DEFAULT_CONTACT, DEFAULT_SERVICES, DEFAULT_TRIP_TYPES } from './defaults';
+import { DEFAULT_CONTACT, DEFAULT_SERVICES, DEFAULT_TEAM, DEFAULT_TRIP_TYPES } from './defaults';
 import { UpdateSiteContentDto } from './dto/update-site-content.dto';
-import { Contact, SiteContent, SiteContentDocument } from './site-content.schema';
+import { Contact, SiteContent, SiteContentDocument, TeamMember } from './site-content.schema';
 
 export interface SlotImage {
   mediaId: string;
@@ -33,6 +33,7 @@ export class SiteContentService {
           tripTypes: DEFAULT_TRIP_TYPES,
           services: DEFAULT_SERVICES,
           contact: DEFAULT_CONTACT,
+          team: DEFAULT_TEAM,
         },
       },
       { upsert: true, new: true },
@@ -43,6 +44,10 @@ export class SiteContentService {
   async getContact(): Promise<Contact> {
     const doc = await this.getDoc();
     return { ...DEFAULT_CONTACT, ...doc.toObject().contact };
+  }
+
+  private team(doc: SiteContentDocument): TeamMember[] {
+    return doc.toObject().team ?? DEFAULT_TEAM;
   }
 
   private async resolveSlots(doc: SiteContentDocument): Promise<Record<string, SlotImage>> {
@@ -80,6 +85,9 @@ export class SiteContentService {
           image: img(slots[TRIP_SLOT_PREFIX + t.key]),
         })),
       services: doc.services.map((s) => ({ icon: s.icon, title: s.title, description: s.description })),
+      team: this.team(doc)
+        .filter((m) => m.visible)
+        .map((m) => ({ key: m.key, name: m.name, role: m.role, bio: m.bio, image: img(slots[TEAM_SLOT_PREFIX + m.key]) })),
       contact: await this.getContact(),
       updatedAt: (doc as unknown as { updatedAt?: Date }).updatedAt,
     };
@@ -91,15 +99,23 @@ export class SiteContentService {
     const plain = doc.toObject();
     return {
       slots: await this.resolveSlots(doc),
-      slotNames: this.slotNames(plain.tripTypes.map((t) => t.key)),
+      slotNames: this.slotNames(plain.tripTypes.map((t) => t.key), this.team(doc).map((m) => m.key)),
       tripTypes: plain.tripTypes,
       services: plain.services,
+      team: this.team(doc),
       contact: { ...DEFAULT_CONTACT, ...plain.contact },
     };
   }
 
-  private slotNames(tripKeys: string[]) {
-    return [...FIXED_SLOTS, ...tripKeys.map((k) => TRIP_SLOT_PREFIX + k)];
+  private slotNames(tripKeys: string[], teamKeys: string[]) {
+    return [...FIXED_SLOTS, ...tripKeys.map((k) => TRIP_SLOT_PREFIX + k), ...teamKeys.map((k) => TEAM_SLOT_PREFIX + k)];
+  }
+
+  /** Removes image slots under `prefix` whose key is no longer in `keys`. */
+  private dropOrphanSlots(doc: SiteContentDocument, prefix: string, keys: string[]) {
+    for (const slot of [...doc.slots.keys()]) {
+      if (slot.startsWith(prefix) && !keys.includes(slot.slice(prefix.length))) doc.slots.delete(slot);
+    }
   }
 
   async update(dto: UpdateSiteContentDto) {
@@ -109,17 +125,20 @@ export class SiteContentService {
       const keys = dto.tripTypes.map((t) => t.key);
       const dup = keys.find((k, i) => keys.indexOf(k) !== i);
       if (dup) throw new BadRequestException(`Trip key "${dup}" is used more than once.`);
-      // Drop image slots belonging to trip types that no longer exist.
-      for (const slot of [...doc.slots.keys()]) {
-        if (slot.startsWith(TRIP_SLOT_PREFIX) && !keys.includes(slot.slice(TRIP_SLOT_PREFIX.length))) {
-          doc.slots.delete(slot);
-        }
-      }
+      this.dropOrphanSlots(doc, TRIP_SLOT_PREFIX, keys);
       doc.tripTypes = dto.tripTypes;
     }
 
+    if (dto.team) {
+      const keys = dto.team.map((m) => m.key);
+      const dup = keys.find((k, i) => keys.indexOf(k) !== i);
+      if (dup) throw new BadRequestException(`Team member key "${dup}" is used more than once.`);
+      this.dropOrphanSlots(doc, TEAM_SLOT_PREFIX, keys);
+      doc.team = dto.team;
+    }
+
     if (dto.slots) {
-      const allowed = new Set(this.slotNames(doc.tripTypes.map((t) => t.key)));
+      const allowed = new Set(this.slotNames(doc.tripTypes.map((t) => t.key), this.team(doc).map((m) => m.key)));
       const ids: string[] = [];
       for (const [slot, id] of Object.entries(dto.slots)) {
         if (!allowed.has(slot)) throw new BadRequestException(`Unknown image slot "${slot}".`);

@@ -10,9 +10,9 @@ import { ToastProvider } from './Toast';
 function Brand() {
   return (
     <Link to="/admin" className="side-brand">
-      <img src="/assets/emblem.png" alt="" width={44} height={39} />
+      <img src="/assets/logo-full.png" alt="" width={64} height={69} />
       <span>
-        <span className="script">Through My Trails</span>
+        <span className="name">Through My Trails</span>
         <span className="caps">Admin</span>
       </span>
     </Link>
